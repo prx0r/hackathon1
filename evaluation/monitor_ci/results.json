@@ -1,0 +1,167 @@
+{
+  "timestamp": "2026-08-19T06:02:10Z",
+  "indicators_tracked": 12,
+  "actually_changed": 2,
+  "predicted_affected": 9,
+  "precision": 0.2222222222222222,
+  "recall": 1.0,
+  "recompute_avoided": 0.25,
+  "changes": {
+    "I5:oa-publication-share": {
+      "old": 50,
+      "new": 10
+    },
+    "I12:open-source-software-share": {
+      "old": 9,
+      "new": 3
+    }
+  },
+  "predictions": {
+    "I1:software-production": false,
+    "I2:software-linked-to-publications": true,
+    "I3:publications-with-orcid": true,
+    "I4:grant-supported-publications": true,
+    "I5:oa-publication-share": true,
+    "I6:dataset-production": false,
+    "I7:publications-with-doi": true,
+    "I8:peer-reviewed-share": true,
+    "I9:publication-count": false,
+    "I10:datasets-with-pid": true,
+    "I11:international-collaboration": true,
+    "I12:open-source-software-share": true
+  },
+  "baselines": {
+    "I1:software-production": {
+      "value": 50,
+      "type": "count"
+    },
+    "I2:software-linked-to-publications": {
+      "value": 0,
+      "denominator": 50,
+      "type": "count_with_relation"
+    },
+    "I3:publications-with-orcid": {
+      "value": 0,
+      "denominator": 50,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I4:grant-supported-publications": {
+      "value": 0,
+      "denominator": 50,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I5:oa-publication-share": {
+      "value": 50,
+      "denominator": 50,
+      "ratio": 1.0,
+      "type": "share"
+    },
+    "I6:dataset-production": {
+      "value": 50,
+      "type": "count"
+    },
+    "I7:publications-with-doi": {
+      "value": 0,
+      "denominator": 50,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I8:peer-reviewed-share": {
+      "value": 0,
+      "denominator": 50,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I9:publication-count": {
+      "value": 50,
+      "type": "count"
+    },
+    "I10:datasets-with-pid": {
+      "value": 0,
+      "denominator": 50,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I11:international-collaboration": {
+      "value": 0,
+      "denominator": 50,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I12:open-source-software-share": {
+      "value": 9,
+      "denominator": 50,
+      "ratio": 0.18,
+      "type": "share"
+    }
+  },
+  "current": {
+    "I1:software-production": {
+      "value": 50,
+      "type": "count"
+    },
+    "I2:software-linked-to-publications": {
+      "value": 0,
+      "denominator": 10,
+      "type": "count_with_relation"
+    },
+    "I3:publications-with-orcid": {
+      "value": 0,
+      "denominator": 10,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I4:grant-supported-publications": {
+      "value": 0,
+      "denominator": 10,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I5:oa-publication-share": {
+      "value": 10,
+      "denominator": 10,
+      "ratio": 1.0,
+      "type": "share"
+    },
+    "I6:dataset-production": {
+      "value": 50,
+      "type": "count"
+    },
+    "I7:publications-with-doi": {
+      "value": 0,
+      "denominator": 10,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I8:peer-reviewed-share": {
+      "value": 0,
+      "denominator": 10,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I9:publication-count": {
+      "value": 50,
+      "type": "count"
+    },
+    "I10:datasets-with-pid": {
+      "value": 0,
+      "denominator": 10,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I11:international-collaboration": {
+      "value": 0,
+      "denominator": 10,
+      "ratio": 0.0,
+      "type": "share"
+    },
+    "I12:open-source-software-share": {
+      "value": 3,
+      "denominator": 10,
+      "ratio": 0.3,
+      "type": "share"
+    }
+  }
+}
