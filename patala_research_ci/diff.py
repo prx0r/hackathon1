@@ -1,185 +1,139 @@
-"""Semantic diff between two snapshots of OpenAIRE records."""
-
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections import Counter
 from typing import Any
+import uuid
+
+from .canonical import digest_json
+from .model import Change, Materiality, SemanticDiff, Snapshot, SourceStatus
 
 
-# Materiality taxonomy — not all changes matter equally
-class ChangeKind(str):
-    COSMETIC = "COSMETIC"
-    IDENTITY = "IDENTITY"
-    METADATA = "METADATA"
-    RELATION = "RELATION"
-    AVAILABILITY = "AVAILABILITY"
-    VERSION = "VERSION"
-    CORRECTION = "CORRECTION"
-    RETRACTION = "RETRACTION"
+def _flatten(value: Any, prefix: str = "") -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    if isinstance(value, dict):
+        for key in sorted(value):
+            path = f"{prefix}.{key}" if prefix else key
+            out.update(_flatten(value[key], path))
+    elif isinstance(value, list):
+        # We compare complete lists at a path. This preserves author order and avoids noisy item indexes.
+        out[prefix] = value
+    else:
+        out[prefix] = value
+    return out
 
 
-# Fields considered cosmetic (never trigger proof obligations)
-COSMETIC_FIELDS = {"formats", "sources", "contributors", "coverages"}
-
-# Fields considered identity-level
-IDENTITY_FIELDS = {"id", "originalIds", "pids"}
-
-# Fields considered metadata
-METADATA_FIELDS = {"mainTitle", "subTitle", "descriptions", "publisher",
-                   "language", "publicationDate", "embargoEndDate", "subjects"}
-
-# Fields that represent relations
-RELATION_FIELDS = {"projects", "organizations", "communities", "collectedFrom"}
-
-# Fields that represent availability
-AVAILABILITY_FIELDS = {"bestAccessRight", "isGreen", "openAccessColor",
-                       "isInDiamondJournal", "publiclyFunded"}
-
-
-def classify_change(field_name: str) -> str:
-    """Classify a field change by materiality."""
-    if field_name in COSMETIC_FIELDS:
-        return ChangeKind.COSMETIC
-    if field_name in IDENTITY_FIELDS:
-        return ChangeKind.IDENTITY
-    if field_name in RELATION_FIELDS:
-        return ChangeKind.RELATION
-    if field_name in AVAILABILITY_FIELDS:
-        return ChangeKind.AVAILABILITY
-    if field_name in METADATA_FIELDS:
-        return ChangeKind.METADATA
-    return ChangeKind.METADATA  # default
+def classify_materiality(path: str, before: Any, after: Any) -> str:
+    p = path.lower()
+    if "is_retracted" in p and bool(after):
+        return Materiality.RETRACTION.value
+    if "is_corrected" in p and bool(after):
+        return Materiality.CORRECTION.value
+    if any(x in p for x in ("pids", "orcid", "id")):
+        return Materiality.IDENTITY.value
+    if any(x in p for x in ("access_right", "license", "availability")):
+        return Materiality.AVAILABILITY.value
+    if any(x in p for x in ("title", "publisher", "language", "publication_date", "authors", "grants", "is_peer_reviewed")):
+        return Materiality.METADATA.value
+    if p.endswith("raw_digest"):
+        return Materiality.COSMETIC.value
+    return Materiality.METADATA.value
 
 
-@dataclass
-class FieldChange:
-    """A single field change within a record."""
-    field: str
-    old_value: Any
-    new_value: Any
-    materiality: str
-
-    def to_dict(self) -> dict:
-        return {
-            "field": self.field,
-            "old_value": self.old_value,
-            "new_value": self.new_value,
-            "materiality": self.materiality,
-        }
+def _relation_key(r: dict[str, Any]) -> tuple[str, str, str, str]:
+    return (str(r.get("source") or ""), str(r.get("relation") or ""), str(r.get("target") or ""), str(r.get("subtype") or ""))
 
 
-@dataclass
-class EntityDiff:
-    """Changes to a single entity."""
-    entity_id: str
-    added: bool = False
-    removed: bool = False
-    changed_fields: list[FieldChange] = field(default_factory=list)
+def diff_snapshots(analysis_id: str, old: Snapshot, new: Snapshot) -> SemanticDiff:
+    changes: list[Change] = []
 
-    @property
-    def material_changes(self) -> list[FieldChange]:
-        """Only non-cosmetic changes."""
-        return [c for c in self.changed_fields if c.materiality != ChangeKind.COSMETIC]
+    # Critical invariant: failed/partial upstream retrieval is not a graph deletion event.
+    if new.source_status == SourceStatus.UNAVAILABLE.value:
+        changes.append(Change(
+            change_id="chg:" + uuid.uuid4().hex[:14],
+            kind="SOURCE_UNAVAILABLE",
+            materiality=Materiality.SOURCE_HEALTH.value,
+            reason=new.source_error or "OpenAIRE source unavailable",
+        ))
+        return SemanticDiff(
+            diff_id="diff:" + uuid.uuid4().hex[:14], analysis_id=analysis_id,
+            old_snapshot_id=old.snapshot_id, new_snapshot_id=new.snapshot_id,
+            old_digest=old.digest, new_digest=new.digest, source_status=new.source_status,
+            changes=changes, summary={"SOURCE_UNAVAILABLE": 1},
+        )
 
-    def to_dict(self) -> dict:
-        return {
-            "entity_id": self.entity_id,
-            "added": self.added,
-            "removed": self.removed,
-            "changed_fields": [c.to_dict() for c in self.changed_fields],
-        }
+    # PARTIAL means the primary Graph result is usable but one enrichment plane
+    # (for example ScholeXplorer) failed. Entity changes remain comparable, but
+    # relation deletions must be suppressed because the relation set is incomplete.
+    relations_complete = new.source_status != SourceStatus.PARTIAL.value
+    if not relations_complete:
+        changes.append(Change(
+            change_id="chg:" + uuid.uuid4().hex[:14],
+            kind="SOURCE_PARTIAL",
+            materiality=Materiality.SOURCE_HEALTH.value,
+            reason=new.source_error or "OpenAIRE enrichment partially unavailable; relation deletions suppressed",
+        ))
 
+    old_items = {x.get("id"): x for x in old.items if x.get("id")}
+    new_items = {x.get("id"): x for x in new.items if x.get("id")}
 
-@dataclass
-class SemanticDiff:
-    """The complete diff between two snapshots."""
-    entity_diffs: list[EntityDiff] = field(default_factory=list)
-    added_count: int = 0
-    removed_count: int = 0
-    changed_count: int = 0
-    material_change_count: int = 0
+    for entity_id in sorted(set(new_items) - set(old_items)):
+        changes.append(Change(
+            change_id="chg:" + uuid.uuid4().hex[:14], kind="ENTITY_ADDED",
+            materiality=Materiality.QUERY_MEMBERSHIP.value, entity_id=entity_id,
+            after=new_items[entity_id], reason="entity entered tracked query result",
+        ))
+    for entity_id in sorted(set(old_items) - set(new_items)):
+        changes.append(Change(
+            change_id="chg:" + uuid.uuid4().hex[:14], kind="ENTITY_REMOVED",
+            materiality=Materiality.QUERY_MEMBERSHIP.value, entity_id=entity_id,
+            before=old_items[entity_id], reason="entity left tracked query result",
+        ))
 
-    def to_dict(self) -> dict:
-        return {
-            "entity_diffs": [d.to_dict() for d in self.entity_diffs],
-            "summary": {
-                "added": self.added_count,
-                "removed": self.removed_count,
-                "changed": self.changed_count,
-                "material_changes": self.material_change_count,
-            },
-        }
-
-    def changed_entity_ids(self) -> list[str]:
-        """IDs of entities that were added, removed, or materially changed."""
-        ids = []
-        for d in self.entity_diffs:
-            if d.added or d.removed or d.material_changes:
-                ids.append(d.entity_id)
-        return ids
-
-
-def _extract_relations(record: dict) -> dict[str, Any]:
-    """Extract relation-like fields from a normalized record."""
-    relations = {}
-    for field in RELATION_FIELDS:
-        val = record.get(field)
-        if val is not None:
-            relations[field] = val
-    return relations
-
-
-def compute_diff(
-    old_snapshot: dict[str, dict],
-    new_snapshot: dict[str, dict],
-) -> SemanticDiff:
-    """Compute semantic diff between two snapshots.
-
-    Args:
-        old_snapshot: {entity_id: normalized_record_dict}
-        new_snapshot: {entity_id: normalized_record_dict}
-
-    Returns:
-        SemanticDiff with all entity-level changes
-    """
-    diff = SemanticDiff()
-    all_ids = set(old_snapshot.keys()) | set(new_snapshot.keys())
-
-    for eid in all_ids:
-        old_rec = old_snapshot.get(eid)
-        new_rec = new_snapshot.get(eid)
-
-        if old_rec is None and new_rec is not None:
-            diff.entity_diffs.append(EntityDiff(entity_id=eid, added=True))
-            diff.added_count += 1
-            continue
-
-        if old_rec is not None and new_rec is None:
-            diff.entity_diffs.append(EntityDiff(entity_id=eid, removed=True))
-            diff.removed_count += 1
-            continue
-
-        # Both exist — compare fields
-        changes = []
-        all_fields = set(old_rec.keys()) | set(new_rec.keys())
-        for field in sorted(all_fields):
-            old_val = old_rec.get(field)
-            new_val = new_rec.get(field)
-            if old_val != new_val:
-                materiality = classify_change(field)
-                changes.append(FieldChange(
-                    field=field,
-                    old_value=old_val,
-                    new_value=new_val,
-                    materiality=materiality,
+    for entity_id in sorted(set(old_items) & set(new_items)):
+        before = _flatten(old_items[entity_id])
+        after = _flatten(new_items[entity_id])
+        for path in sorted(set(before) | set(after)):
+            if before.get(path) == after.get(path):
+                continue
+            # raw_digest is a useful fallback signal only if no semantic field changed.
+            if path == "raw_digest":
+                continue
+            changes.append(Change(
+                change_id="chg:" + uuid.uuid4().hex[:14], kind="FIELD_CHANGED",
+                materiality=classify_materiality(path, before.get(path), after.get(path)),
+                entity_id=entity_id, path=path, before=before.get(path), after=after.get(path),
+                reason=f"{path} changed",
+            ))
+        if old_items[entity_id].get("raw_digest") != new_items[entity_id].get("raw_digest"):
+            semantic_changed = any(c.entity_id == entity_id and c.kind == "FIELD_CHANGED" for c in changes)
+            if not semantic_changed:
+                changes.append(Change(
+                    change_id="chg:" + uuid.uuid4().hex[:14], kind="RAW_RECORD_CHANGED",
+                    materiality=Materiality.COSMETIC.value, entity_id=entity_id, path="raw_digest",
+                    before=old_items[entity_id].get("raw_digest"), after=new_items[entity_id].get("raw_digest"),
+                    reason="upstream record changed outside normalized semantic fields",
                 ))
 
-        if changes:
-            diff.entity_diffs.append(EntityDiff(
-                entity_id=eid,
-                changed_fields=changes,
+    old_rel = {_relation_key(r): r for r in old.relations}
+    new_rel = {_relation_key(r): r for r in new.relations}
+    if relations_complete:
+        for key in sorted(set(new_rel) - set(old_rel)):
+            changes.append(Change(
+                change_id="chg:" + uuid.uuid4().hex[:14], kind="RELATION_ADDED",
+                materiality=Materiality.RELATION.value, relation=new_rel[key],
+                reason="typed scholarly relation added",
             ))
-            diff.changed_count += 1
-            diff.material_change_count += len([c for c in changes if c.materiality != ChangeKind.COSMETIC])
+        for key in sorted(set(old_rel) - set(new_rel)):
+            changes.append(Change(
+                change_id="chg:" + uuid.uuid4().hex[:14], kind="RELATION_REMOVED",
+                materiality=Materiality.RELATION.value, relation=old_rel[key],
+                reason="typed scholarly relation removed",
+            ))
 
-    return diff
+    summary = dict(Counter(c.kind for c in changes))
+    return SemanticDiff(
+        diff_id="diff:" + uuid.uuid4().hex[:14], analysis_id=analysis_id,
+        old_snapshot_id=old.snapshot_id, new_snapshot_id=new.snapshot_id,
+        old_digest=old.digest, new_digest=new.digest, source_status=new.source_status,
+        changes=changes, summary=summary,
+    )

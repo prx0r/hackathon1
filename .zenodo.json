@@ -1,0 +1,28 @@
+{
+  "title": "P\u0101\u1e6dala Research CI: Continuous Verification for AI-Native Open Science",
+  "description": "OpenAIRE AI Hackathon 2026 Theme B artifact. Tracks evidence dependencies, detects material Graph changes, emits proof obligations, and produces verification receipts.",
+  "creators": [
+    {
+      "name": "Prior, Tom"
+    }
+  ],
+  "license": "mit",
+  "upload_type": "software",
+  "access_right": "open",
+  "keywords": [
+    "OpenAIRE",
+    "Open Science",
+    "MCP",
+    "research intelligence",
+    "FAIR",
+    "provenance",
+    "continuous verification"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/prx0r/hackathon1",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

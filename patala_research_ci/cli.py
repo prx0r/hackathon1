@@ -1,331 +1,219 @@
-"""CLI interface for Pāṭala Research CI."""
-
 from __future__ import annotations
 
 import argparse
 import json
-import sys
-import time
+import shutil
 from pathlib import Path
+from typing import Any
 
-from .openaire import OpenAIREClient, SourceStatus
-from .tracked import TrackedAnalysis, TrackedClaim, ClaimStatus, Dependency, DepKind
-from .diff import compute_diff
-from .impact import analyze_impact
-from .obligations import generate_obligations
-from .ledger import ResearchCILedger
-
-
-DEFAULT_DATA_DIR = Path(__file__).parent.parent / "data"
+from .dashboard import serve as serve_dashboard
+from .export import export_ro_crate
+from .model import Dependency, QuerySpec, Snapshot, TrackedClaim
+from .mcp_trace import load_trace, build_trace
+from .service import ResearchCI
+from .store import Workspace
 
 
-def cmd_track(args):
-    """Track an analysis against OpenAIRE."""
-    client = OpenAIREClient()
-    ledger = ResearchCILedger(DEFAULT_DATA_DIR / "ledger")
+def _kv(values: list[str] | None) -> dict[str, str]:
+    out = {}
+    for raw in values or []:
+        if "=" not in raw:
+            raise SystemExit(f"Expected KEY=VALUE, got: {raw}")
+        k, v = raw.split("=", 1)
+        out[k] = v
+    return out
 
-    print(f"Fetching from OpenAIRE V3...")
-    records, status = client.fetch_records(
-        entity_type=args.entity or "research-products",
-        search=args.search or "",
-        page_size=args.page_size or 25,
-        max_pages=args.max_pages or 5,
+
+def _print_json(value: Any):
+    if hasattr(value, "to_dict"):
+        value = value.to_dict()
+    print(json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True))
+
+
+def _load_claims(path: str | None) -> list[TrackedClaim]:
+    if not path:
+        return []
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if isinstance(data, dict):
+        data = data.get("claims", [])
+    return [TrackedClaim.from_dict(x) for x in data]
+
+
+def _load_snapshot(path: str) -> Snapshot:
+    return Snapshot.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="patala-ci", description="Continuous verification for evolving scholarly knowledge")
+    p.add_argument("--workspace", default=".patala-ci", help="Workspace directory")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    t = sub.add_parser("track", help="Track an OpenAIRE query and its claims")
+    t.add_argument("--id", required=True); t.add_argument("--title")
+    t.add_argument("--entity", default="research-products", choices=["research-products","organizations","datasources","projects","persons"])
+    t.add_argument("--search"); t.add_argument("--param", action="append", default=[])
+    t.add_argument("--api", default="v3", choices=["v3","v4"])
+    t.add_argument("--page-size", type=int, default=25); t.add_argument("--max-pages", type=int, default=1)
+    t.add_argument("--relations", action="store_true", help="Enrich research products via ScholeXplorer V3")
+    t.add_argument("--relation", help="Optional ScholeXplorer relation semantic")
+    t.add_argument("--select", action="append", default=[], help="V4 beta sparse field selection")
+    t.add_argument("--facet", action="append", default=[], help="V4 beta facet")
+    t.add_argument("--claims", help="JSON file containing TrackedClaim objects")
+    t.add_argument("--mcp-trace", help="Alien/OpenAIRE MCP trace JSON to bind to this analysis")
+
+    v = sub.add_parser("verify", help="Re-run a tracked analysis against current OpenAIRE")
+    v.add_argument("analysis_id")
+
+    rr = sub.add_parser("resolve", help="Resolve a computable proof obligation with a frozen verification plan")
+    rr.add_argument("obligation_id")
+
+    l = sub.add_parser("log", help="Show append-only event history")
+    l.add_argument("--tail", type=int, default=50)
+
+    vl = sub.add_parser("verify-ledger", help="Verify hash-chain integrity")
+
+    li = sub.add_parser("list", help="List analyses and proof obligations")
+
+    ex = sub.add_parser("export", help="Export an analysis as an RO-Crate-style ZIP")
+    ex.add_argument("analysis_id"); ex.add_argument("--out", required=True)
+
+    d = sub.add_parser("demo", help="Run the complete deterministic offline demo")
+    d.add_argument("--fixtures", default=str(Path(__file__).resolve().parents[1] / "fixtures" / "demo"))
+
+    mi = sub.add_parser("mcp-import", help="Import and hash an Alien/OpenAIRE MCP tool-call trace")
+    mi.add_argument("trace_file")
+    mi.add_argument("--bind", dest="bind_analysis", help="Optional analysis ID to bind the trace to")
+
+    ml = sub.add_parser("mcp-list", help="List imported MCP evidence traces")
+
+    s = sub.add_parser("serve", help="Serve local read-only dashboard")
+    s.add_argument("--host", default="127.0.0.1"); s.add_argument("--port", type=int, default=8765)
+    return p
+
+
+def cmd_track(args, ci: ResearchCI):
+    spec = QuerySpec(
+        entity=args.entity, search=args.search, filters=_kv(args.param), api_version=args.api,
+        page_size=args.page_size, max_pages=args.max_pages, include_scholexplorer=args.relations,
+        scholexplorer_relation=args.relation, select=args.select, facets=args.facet,
     )
-    client.close()
-
-    if status != SourceStatus.OK:
-        print(f"Source status: {status}")
-        print("SOURCE FAILURE ≠ ZERO RESULTS — not recording empty snapshot")
-        return
-
-    if not records:
-        print("No records found.")
-        return
-
-    # Create tracked analysis
-    analysis_id = args.name or f"analysis:{int(time.time())}"
-    query = {"search": args.search or "", "entity": args.entity or "research-products"}
-    analysis = TrackedAnalysis.create(analysis_id, args.title or analysis_id, query, records)
-
-    # Save
-    analysis_file = DEFAULT_DATA_DIR / "analyses" / f"{analysis_id}.json"
-    analysis_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(analysis_file, "w") as f:
-        json.dump(analysis.to_dict(), f, indent=2, default=str)
-
-    # Record event
-    ledger.record_track(analysis_id, query, len(records), analysis.snapshot_digest)
-
-    print(f"\nTrackedAnalysis created")
-    print(f"  analysis_id: {analysis_id}")
-    print(f"  records:     {len(records)}")
-    print(f"  digest:      {analysis.snapshot_digest[:32]}...")
-    print(f"  saved:       {analysis_file}")
+    analysis = ci.track(args.id, args.title or args.id, spec, claims=_load_claims(args.claims))
+    trace_info = None
+    if args.mcp_trace:
+        trace = load_trace(args.mcp_trace)
+        ci.ws.save_mcp_trace(trace)
+        ci.ws.ledger.append("mcp.trace_imported", trace.trace_id, {
+            "trace_digest": trace.digest, "provider": trace.provider, "connector": trace.connector,
+            "synthetic": trace.synthetic, "calls": len(trace.calls), "openaire_ids": trace.openaire_ids,
+        })
+        ci.ws.bind_mcp_trace(analysis.analysis_id, trace.trace_id)
+        trace_info = {"trace_id": trace.trace_id, "digest": trace.digest, "synthetic": trace.synthetic}
+    snap = ci.ws.load_snapshot(analysis.latest_snapshot_id)
+    _print_json({"analysis": analysis.to_dict(), "snapshot": {"id": snap.snapshot_id, "digest": snap.digest,
+                 "source_status": snap.source_status, "items": len(snap.items), "relations": len(snap.relations)},
+                 "mcp_trace": trace_info})
 
 
-def cmd_claim(args):
-    """Add a tracked claim to an analysis."""
-    analysis_file = DEFAULT_DATA_DIR / "analyses" / f"{args.analysis}.json"
-    if not analysis_file.exists():
-        print(f"Analysis not found: {args.analysis}")
-        sys.exit(1)
+def cmd_verify(args, ci: ResearchCI):
+    r = ci.verify(args.analysis_id)
+    _print_json({
+        "diff": r["diff"].to_dict(), "impact": r["impact"].to_dict(),
+        "obligations": [x.to_dict() for x in r["obligations"]],
+        "ledger_state": ci.ws.ledger.state_digest(),
+    })
 
-    with open(analysis_file) as f:
-        analysis = TrackedAnalysis.from_dict(json.load(f))
 
-    # Create claim
-    claim_id = args.claim_id or f"claim:{int(time.time())}"
-    deps = []
-    if args.depends:
-        for dep_str in args.depends:
-            # Parse "entity:openaire:xxx" or "relation:src:predicate:tgt"
-            parts = dep_str.split(":", 1)
-            if parts[0] == "entity":
-                deps.append(Dependency(kind=DepKind.ENTITY, ref=parts[1]))
-            elif parts[0] == "relation":
-                # relation:source:predicate:target
-                rp = parts[1].split(":")
-                if len(rp) >= 3:
-                    deps.append(Dependency(kind=DepKind.RELATION,
-                                           source=rp[0], predicate=rp[1], target=rp[2]))
-            elif parts[0] == "field":
-                # field:entity_id:field_name
-                fp = parts[1].split(":")
-                if len(fp) >= 2:
-                    deps.append(Dependency(kind=DepKind.FIELD, ref=fp[0], field=fp[1]))
-
-    claim = TrackedClaim(
-        claim_id=claim_id,
-        text=args.text,
-        dependencies=deps,
-        created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+def cmd_demo(args, ci: ResearchCI):
+    fixture = Path(args.fixtures)
+    baseline = _load_snapshot(str(fixture / "baseline_snapshot.json"))
+    current = _load_snapshot(str(fixture / "current_snapshot.json"))
+    claims = _load_claims(str(fixture / "claims.json"))
+    spec = QuerySpec.from_dict(baseline.query)
+    analysis_id = "demo:software-evidence"
+    # Clean collision only inside the chosen demo workspace.
+    for folder in ("analyses","snapshots","claims","diffs","impacts","obligations","plans","receipts"):
+        for p in (ci.ws.root / folder).glob("*.json"):
+            p.unlink()
+    ci.ws.ledger.path.write_text("", encoding="utf-8")
+    ci.track_from_snapshot(analysis_id, "Open research software and linked datasets", spec, baseline, claims,
+                           "Deterministic OpenAIRE-shaped fixture demonstrating impact-aware verification.")
+    # Exercise the required OpenAIRE-MCP evidence boundary without pretending that
+    # an offline test fixture is a live Alien session. This trace is explicitly synthetic.
+    trace = build_trace(
+        tool_name="search_research_products",
+        arguments={"search": "research software", "page_size": 4},
+        result={"source": "OpenAIRE MCP fixture", "items": [{"id": x.get("id")} for x in baseline.items]},
+        openaire_ids=[str(x.get("id")) for x in baseline.items if x.get("id")],
+        client="Pāṭala deterministic demo",
+        session_label="offline synthetic MCP-path test",
+        synthetic=True,
     )
-
-    # Add to analysis
-    analysis.claims.append(claim_id)
-    analysis_file.parent.mkdir(parents=True, exist_ok=True)
-
-    # Save claim separately
-    claims_dir = DEFAULT_DATA_DIR / "claims"
-    claims_dir.mkdir(parents=True, exist_ok=True)
-    claim_file = claims_dir / f"{claim_id}.json"
-    with open(claim_file, "w") as f:
-        json.dump(claim.to_dict(), f, indent=2)
-
-    # Update analysis
-    with open(analysis_file, "w") as f:
-        json.dump(analysis.to_dict(), f, indent=2, default=str)
-
-    print(f"Claim added: {claim_id}")
-    print(f"  text:         {args.text}")
-    print(f"  dependencies: {len(deps)}")
-    print(f"  analysis:     {args.analysis}")
-
-
-def cmd_verify(args):
-    """Verify an analysis against current OpenAIRE state."""
-    analysis_file = DEFAULT_DATA_DIR / "analyses" / f"{args.analysis}.json"
-    if not analysis_file.exists():
-        print(f"Analysis not found: {args.analysis}")
-        sys.exit(1)
-
-    with open(analysis_file) as f:
-        analysis = TrackedAnalysis.from_dict(json.load(f))
-
-    # Get the old snapshot
-    old_version = list(analysis.snapshots.keys())[-1] if analysis.snapshots else None
-    old_snapshot = analysis.snapshots.get(old_version, {})
-    if not old_snapshot:
-        print("No snapshot found for analysis.")
-        sys.exit(1)
-
-    # Fetch current state
-    print("Fetching current OpenAIRE state...")
-    client = OpenAIREClient()
-    records, status = client.fetch_records(
-        entity_type=analysis.query.get("entity", "research-products"),
-        search=analysis.query.get("search", ""),
-        page_size=args.page_size or 25,
-        max_pages=args.max_pages or 5,
-    )
-    client.close()
-
-    if status != SourceStatus.OK:
-        print(f"\nSource status: {status}")
-        print("SOURCE FAILURE ≠ ZERO RESULTS — cannot verify against unavailable source")
-        print("Marking snapshot as SOURCE_UNAVAILABLE, not computing diff")
-        return
-
-    new_snapshot = {r.id: r.to_dict() for r in records}
-    new_version = time.strftime("%Y%m%d")
-    new_digest = f"sha256:{__import__('hashlib').sha256(json.dumps(sorted(new_snapshot.keys())).encode()).hexdigest()}"
-
-    print(f"\nGraph changes")
-    print(f"{'─' * 40}")
-
-    # Compute diff
-    diff = compute_diff(old_snapshot, new_snapshot)
-
-    print(f"  Old records:     {len(old_snapshot)}")
-    print(f"  New records:     {len(new_snapshot)}")
-    print(f"  Added:           {diff.added_count}")
-    print(f"  Removed:         {diff.removed_count}")
-    print(f"  Changed:         {diff.changed_count}")
-    print(f"  Material changes: {diff.material_change_count}")
-
-    # Load claims
-    claims = []
-    for claim_id in analysis.claims:
-        claim_file = DEFAULT_DATA_DIR / "claims" / f"{claim_id}.json"
-        if claim_file.exists():
-            with open(claim_file) as f:
-                claims.append(TrackedClaim.from_dict(json.load(f)))
-
-    if not claims:
-        print("\nNo tracked claims. Use 'patala claim add' to add claims.")
-        # Save updated snapshot
-        analysis.snapshots[new_version] = new_snapshot
-        with open(analysis_file, "w") as f:
-            json.dump(analysis.to_dict(), f, indent=2, default=str)
-        return
-
-    # Analyze impact
-    report = analyze_impact(analysis_id=args.analysis, claims=claims, diff=diff)
-
-    print(f"\nImpact")
-    print(f"{'─' * 40}")
-    for impact in report.claim_impacts:
-        status_icon = {
-            "SOURCE_CHANGED": "⚠️",
-            "RECOMPUTE": "🔄",
-            "HUMAN_REVIEW": "👤",
-            "CURRENT": "✅",
-        }.get(impact.status.value, "?")
-        print(f"  {impact.claim_id:20s} {status_icon} {impact.status.value}")
-        print(f"                       {impact.reason}")
-
-    print(f"\n  Unaffected: {len(report.unaffected)}")
-    print(f"  Recompute:  {len(report.recompute)}")
-    print(f"  Human:      {len(report.human_review)}")
-
-    # Generate proof obligations
-    obligations = generate_obligations(report)
-    if obligations:
-        print(f"\nProof obligations")
-        print(f"{'─' * 40}")
-        for po in obligations:
-            print(f"  {po.id}  {po.claim_id}")
-            print(f"    Reason:   {po.reason}")
-            print(f"    Action:   {po.recommended_action}")
-            print(f"    Change:   {po.change_ref[:60]}")
-            print()
-
-        # Save obligations
-        obs_dir = DEFAULT_DATA_DIR / "obligations"
-        obs_dir.mkdir(parents=True, exist_ok=True)
-        for po in obligations:
-            po_file = obs_dir / f"{po.id}.json"
-            with open(po_file, "w") as f:
-                json.dump(po.to_dict(), f, indent=2)
-
-    # Record verification event
-    ledger = ResearchCILedger(DEFAULT_DATA_DIR / "ledger")
-    ledger.record_verify(args.analysis, diff.to_dict().get("summary", {}),
-                         len(claims), len(report.recompute) + len(report.human_review))
-
-    for po in obligations:
-        ledger.record_obligation(po.to_dict())
-
-    # Save updated snapshot
-    analysis.snapshots[new_version] = new_snapshot
-    with open(analysis_file, "w") as f:
-        json.dump(analysis.to_dict(), f, indent=2, default=str)
-
-    print(f"Ledger updated.")
+    ci.ws.save_mcp_trace(trace)
+    ci.ws.ledger.append("mcp.trace_imported", trace.trace_id, {
+        "trace_digest": trace.digest, "provider": trace.provider, "connector": trace.connector,
+        "synthetic": True, "calls": len(trace.calls), "openaire_ids": trace.openaire_ids,
+    })
+    ci.ws.bind_mcp_trace(analysis_id, trace.trace_id)
+    result = ci.verify(analysis_id, supplied_snapshot=current)
+    resolved = []
+    for ob in result["obligations"]:
+        claim = ci.ws.load_claim(ob.claim_id)
+        if claim.computation:
+            x = ci.resolve_computable(ob.obligation_id)
+            resolved.append({"obligation_id": ob.obligation_id, "claim": claim.claim_id,
+                             "result": x["evaluation"], "receipt": x["receipt"].receipt_id,
+                             "receipt_valid": x["valid"]})
+    ok, reason = ci.ws.ledger.verify()
+    _print_json({
+        "analysis": analysis_id,
+        "mcp_trace": {"trace_id": trace.trace_id, "digest": trace.digest, "synthetic": True,
+                      "connector": trace.connector, "openaire_ids": trace.openaire_ids},
+        "baseline": baseline.digest,
+        "current": current.digest,
+        "diff_summary": result["diff"].summary,
+        "impact": result["impact"].to_dict(),
+        "obligations": [x.to_dict() for x in result["obligations"]],
+        "auto_resolved": resolved,
+        "ledger": {"ok": ok, "reason": reason, "state_digest": ci.ws.ledger.state_digest()},
+    })
 
 
-def cmd_log(args):
-    """Show recent events."""
-    ledger = ResearchCILedger(DEFAULT_DATA_DIR / "ledger")
-    events = ledger.log(limit=args.limit or 20)
-
-    if not events:
-        print("No events recorded.")
-        return
-
-    for ev in events:
-        print(f"  {ev.get('recorded_at', '?')}  {ev.get('event_type', '?')}  "
-              f"{ev.get('entity_ids', [])}")
-
-
-def cmd_list(args):
-    """List tracked analyses."""
-    analyses_dir = DEFAULT_DATA_DIR / "analyses"
-    if not analyses_dir.exists():
-        print("No analyses tracked.")
-        return
-
-    for f in sorted(analyses_dir.glob("*.json")):
-        with open(f) as fh:
-            data = json.load(fh)
-        print(f"  {data.get('analysis_id', f.stem)}")
-        print(f"    title:    {data.get('title', '?')}")
-        print(f"    records:  {len(data.get('result_ids', []))}")
-        print(f"    claims:   {len(data.get('claims', []))}")
-        print(f"    observed: {data.get('observed_at', '?')}")
-        print()
+def cmd_mcp_import(args, ci: ResearchCI):
+    trace = load_trace(args.trace_file)
+    path = ci.ws.save_mcp_trace(trace)
+    ci.ws.ledger.append("mcp.trace_imported", trace.trace_id, {
+        "trace_digest": trace.digest,
+        "provider": trace.provider,
+        "connector": trace.connector,
+        "client": trace.client,
+        "synthetic": trace.synthetic,
+        "calls": len(trace.calls),
+        "openaire_ids": trace.openaire_ids,
+    })
+    binding = None
+    if args.bind_analysis:
+        binding = ci.ws.bind_mcp_trace(args.bind_analysis, trace.trace_id)
+    _print_json({"trace_id": trace.trace_id, "trace_digest": trace.digest, "stored": str(path),
+                 "synthetic": trace.synthetic, "openaire_ids": trace.openaire_ids, "binding": binding})
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        prog="patala",
-        description="Pāṭala Research CI — continuous verification for scholarly knowledge graphs",
-    )
-    sub = parser.add_subparsers(dest="command")
-
-    # track
-    p_track = sub.add_parser("track", help="Track an analysis against OpenAIRE")
-    p_track.add_argument("--name", help="Analysis ID")
-    p_track.add_argument("--title", help="Human-readable title")
-    p_track.add_argument("--search", help="Search query")
-    p_track.add_argument("--entity", default="research-products", help="Entity type")
-    p_track.add_argument("--page-size", type=int, default=25)
-    p_track.add_argument("--max-pages", type=int, default=5)
-    p_track.set_defaults(func=cmd_track)
-
-    # claim
-    p_claim = sub.add_parser("claim", help="Manage tracked claims")
-    claim_sub = p_claim.add_subparsers(dest="claim_cmd")
-
-    p_claim_add = claim_sub.add_parser("add", help="Add a claim")
-    p_claim_add.add_argument("--analysis", required=True, help="Analysis ID")
-    p_claim_add.add_argument("--claim-id", help="Claim ID")
-    p_claim_add.add_argument("--text", required=True, help="Claim text")
-    p_claim_add.add_argument("--depends", nargs="*", help="Dependencies (entity:X, relation:X:Y:Z, field:X:Y)")
-    p_claim_add.set_defaults(func=cmd_claim)
-
-    # verify
-    p_verify = sub.add_parser("verify", help="Verify analysis against current state")
-    p_verify.add_argument("analysis", help="Analysis ID")
-    p_verify.add_argument("--page-size", type=int, default=25)
-    p_verify.add_argument("--max-pages", type=int, default=5)
-    p_verify.set_defaults(func=cmd_verify)
-
-    # log
-    p_log = sub.add_parser("log", help="Show recent events")
-    p_log.add_argument("--limit", type=int, default=20)
-    p_log.set_defaults(func=cmd_log)
-
-    # list
-    p_list = sub.add_parser("list", help="List tracked analyses")
-    p_list.set_defaults(func=cmd_list)
-
-    args = parser.parse_args()
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-
-    args.func(args)
+def main(argv: list[str] | None = None):
+    args = build_parser().parse_args(argv)
+    ws = Workspace(args.workspace)
+    ci = ResearchCI(ws)
+    if args.cmd == "track": cmd_track(args, ci)
+    elif args.cmd == "verify": cmd_verify(args, ci)
+    elif args.cmd == "resolve": _print_json(ci.resolve_computable(args.obligation_id))
+    elif args.cmd == "log": _print_json(ws.ledger.events()[-args.tail:])
+    elif args.cmd == "verify-ledger":
+        ok, reason = ws.ledger.verify(); _print_json({"ok": ok, "reason": reason, "state_digest": ws.ledger.state_digest()})
+        raise SystemExit(0 if ok else 2)
+    elif args.cmd == "list": _print_json({"analyses": ws.list_analyses(), "obligations": ws.list_obligations()})
+    elif args.cmd == "export": print(export_ro_crate(ws, args.analysis_id, args.out))
+    elif args.cmd == "demo": cmd_demo(args, ci)
+    elif args.cmd == "mcp-import": cmd_mcp_import(args, ci)
+    elif args.cmd == "mcp-list": _print_json(ws.list_mcp_traces())
+    elif args.cmd == "serve": serve_dashboard(args.workspace, args.host, args.port)
 
 
 if __name__ == "__main__":
