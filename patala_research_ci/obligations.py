@@ -1,7 +1,14 @@
-"""Proof obligations — machine-readable re-verification tasks."""
+"""Proof obligations — machine-readable re-verification tasks.
+
+Adapted from QDW ReviewFinding: obligations carry frozen acceptance criteria
+that cannot be weakened after creation. Changing the criterion creates a new
+obligation (which is itself an event).
+"""
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -19,7 +26,12 @@ class ResolutionClass(str):
 
 @dataclass
 class ProofObligation:
-    """A machine-readable obligation to re-verify a claim."""
+    """A machine-readable obligation to re-verify a claim.
+
+    Carries frozen acceptance criteria (adapted from QDW):
+    the criterion is hashed at creation time and cannot be silently
+    weakened later.
+    """
     id: str
     claim_id: str
     analysis_id: str
@@ -32,6 +44,18 @@ class ProofObligation:
     resolved_at: str | None = None
     resolution_note: str | None = None
 
+    # Frozen acceptance criteria (QDW-inspired)
+    acceptance: dict = field(default_factory=dict)
+    acceptance_hash: str = ""
+
+    def __post_init__(self):
+        if self.acceptance and not self.acceptance_hash:
+            self.acceptance_hash = self._hash_acceptance()
+
+    def _hash_acceptance(self) -> str:
+        canonical = json.dumps(self.acceptance, sort_keys=True, separators=(",", ":"))
+        return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
+
     def to_dict(self) -> dict:
         d = {
             "id": self.id,
@@ -43,6 +67,8 @@ class ProofObligation:
             "resolution_class": self.resolution_class,
             "status": self.status,
             "created_at": self.created_at,
+            "acceptance": self.acceptance,
+            "acceptance_hash": self.acceptance_hash,
         }
         if self.resolved_at:
             d["resolved_at"] = self.resolved_at
@@ -73,6 +99,31 @@ def _recommend_action(impact: ClaimImpact) -> str:
     return "NONE"
 
 
+def _frozen_acceptance(impact: ClaimImpact) -> dict:
+    """Create frozen acceptance criteria at obligation creation time.
+
+    These criteria cannot be weakened after the fact.
+    """
+    if impact.status == ClaimStatus.HUMAN_REVIEW:
+        return {
+            "type": "human_adjudication",
+            "required": ["adjudicator_orcid", "decision_recorded", "evidence_cited"],
+        }
+    if impact.status == ClaimStatus.RECOMPUTE:
+        return {
+            "type": "analysis_recompute",
+            "required": ["rerun_query", "recompute_statistic", "compare_result"],
+            "constraints": {
+                "conclusion_must_be_stated": True,
+                "evidence_must_be_cited": True,
+            },
+        }
+    return {
+        "type": "recheck_evidence",
+        "required": ["verify_source", "compare_versions"],
+    }
+
+
 # Counter for sequential PO IDs
 _po_counter = 0
 
@@ -84,7 +135,11 @@ def _next_po_id() -> str:
 
 
 def generate_obligations(report: ImpactReport) -> list[ProofObligation]:
-    """Generate proof obligations from an impact report."""
+    """Generate proof obligations from an impact report.
+
+    Each obligation carries frozen acceptance criteria that cannot
+    be silently weakened after creation.
+    """
     obligations = []
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -102,6 +157,9 @@ def generate_obligations(report: ImpactReport) -> list[ProofObligation]:
         if len(change_refs) > 3:
             change_ref += f"; +{len(change_refs) - 3} more"
 
+        # Frozen acceptance criteria
+        acceptance = _frozen_acceptance(impact)
+
         po = ProofObligation(
             id=_next_po_id(),
             claim_id=impact.claim_id,
@@ -112,6 +170,7 @@ def generate_obligations(report: ImpactReport) -> list[ProofObligation]:
             resolution_class=resolution_class,
             status="OPEN",
             created_at=now,
+            acceptance=acceptance,
         )
         obligations.append(po)
 

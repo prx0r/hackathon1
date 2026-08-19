@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from .openaire import OpenAIREClient
+from .openaire import OpenAIREClient, SourceStatus
 from .tracked import TrackedAnalysis, TrackedClaim, ClaimStatus, Dependency, DepKind
 from .diff import compute_diff
 from .impact import analyze_impact
@@ -25,13 +25,18 @@ def cmd_track(args):
     ledger = ResearchCILedger(DEFAULT_DATA_DIR / "ledger")
 
     print(f"Fetching from OpenAIRE V3...")
-    records = client.fetch_records(
+    records, status = client.fetch_records(
         entity_type=args.entity or "research-products",
         search=args.search or "",
         page_size=args.page_size or 25,
         max_pages=args.max_pages or 5,
     )
     client.close()
+
+    if status != SourceStatus.OK:
+        print(f"Source status: {status}")
+        print("SOURCE FAILURE ≠ ZERO RESULTS — not recording empty snapshot")
+        return
 
     if not records:
         print("No records found.")
@@ -137,13 +142,19 @@ def cmd_verify(args):
     # Fetch current state
     print("Fetching current OpenAIRE state...")
     client = OpenAIREClient()
-    records = client.fetch_records(
+    records, status = client.fetch_records(
         entity_type=analysis.query.get("entity", "research-products"),
         search=analysis.query.get("search", ""),
         page_size=args.page_size or 25,
         max_pages=args.max_pages or 5,
     )
     client.close()
+
+    if status != SourceStatus.OK:
+        print(f"\nSource status: {status}")
+        print("SOURCE FAILURE ≠ ZERO RESULTS — cannot verify against unavailable source")
+        print("Marking snapshot as SOURCE_UNAVAILABLE, not computing diff")
+        return
 
     new_snapshot = {r.id: r.to_dict() for r in records}
     new_version = time.strftime("%Y%m%d")

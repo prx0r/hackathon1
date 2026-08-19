@@ -79,6 +79,14 @@ def _make_id(record: dict, entity_type: str) -> str:
     return f"openaire:hash:{_digest({'title': title, 'type': entity_type})[:16]}"
 
 
+# Anti-cheat invariants (from QDW doctrine)
+class SourceStatus:
+    OK = "OK"
+    SOURCE_UNAVAILABLE = "SOURCE_UNAVAILABLE"
+    PARTIAL = "PARTIAL"
+    ERROR = "ERROR"
+
+
 class OpenAIREClient:
     """V3 Graph API client with normalization and caching."""
 
@@ -93,8 +101,11 @@ class OpenAIREClient:
         filters: dict | None = None,
         page_size: int = 25,
         page: int = 1,
-    ) -> dict:
-        """Search OpenAIRE V3. Returns raw API response."""
+    ) -> tuple[dict, str]:
+        """Search OpenAIRE V3. Returns (raw API response, source_status).
+
+        Anti-cheat invariant: SOURCE FAILURE ≠ ZERO RESULTS.
+        """
         params: dict[str, Any] = {
             "pageSize": page_size,
             "page": page,
@@ -106,9 +117,14 @@ class OpenAIREClient:
                 params[k] = v
 
         url = f"{self.base_url}/{entity_type}"
-        resp = self.client.get(url, params=params)
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            resp = self.client.get(url, params=params)
+            resp.raise_for_status()
+            return resp.json(), SourceStatus.OK
+        except httpx.HTTPStatusError:
+            return {"results": [], "header": {"numFound": 0}}, SourceStatus.SOURCE_UNAVAILABLE
+        except httpx.ConnectError:
+            return {"results": [], "header": {"numFound": 0}}, SourceStatus.SOURCE_UNAVAILABLE
 
     def fetch_records(
         self,
@@ -117,11 +133,21 @@ class OpenAIREClient:
         filters: dict | None = None,
         page_size: int = 25,
         max_pages: int = 10,
-    ) -> list[NormalizedRecord]:
-        """Fetch and normalize records across multiple pages."""
+    ) -> tuple[list[NormalizedRecord], str]:
+        """Fetch and normalize records across multiple pages.
+
+        Returns (records, source_status).
+        Anti-cheat: never returns empty list on source failure without status.
+        """
         records = []
+        overall_status = SourceStatus.OK
+
         for page in range(1, max_pages + 1):
-            data = self.search(entity_type, search, filters, page_size, page)
+            data, status = self.search(entity_type, search, filters, page_size, page)
+            if status != SourceStatus.OK:
+                overall_status = status
+                break
+
             results = data.get("results", [])
             if not results:
                 break
@@ -142,7 +168,7 @@ class OpenAIREClient:
             if page * page_size >= total:
                 break
 
-        return records
+        return records, overall_status
 
     def fetch_single(self, entity_type: str, entity_id: str) -> NormalizedRecord | None:
         """Fetch a single entity by OpenAIRE ID."""
