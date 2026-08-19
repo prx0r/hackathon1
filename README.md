@@ -1,64 +1,138 @@
-# hackathon1 — OpenAIRE AI Hackathon
+# Pāṭala Research CI
 
-**Submission for:** [OpenAIRE AI Hackathon - Powered by Alien Intelligence](https://graph.openaire.eu/component/eventbooking/hackathons/openaire-ai-hackathon-powered-by-alien-intelligence)
-**Deadline:** August 20, 2026 (23:59 CET)
+**Continuous verification for research built on evolving scholarly knowledge graphs.**
 
----
-
-## What is OpenAIRE?
-
-OpenAIRE Graph is one of the world's largest scholarly knowledge graphs — **386.6M+ research products** aggregated from Crossref, PubMed, ORCID, DataCite, Zenodo, arXiv, and 1000+ repositories.
-
-### Key APIs
-
-| API | Base URL | What it does |
-|-----|----------|--------------|
-| **Graph API V3** | `https://api.openaire.eu/graph/v3/` | Search/filter research products, orgs, projects, persons |
-| **Graph API V4 (BETA)** | `https://api-beta.openaire.eu/graph/v4/` | Unified filter syntax, aggregations, sparse fieldsets |
-| **ScholeXplorer** | `https://api.scholexplorer.openaire.eu/` | Dataset-publication & dataset-dataset links |
-| **Broker API** | TBD | Enrich metadata for repositories |
-
-### Data Model Entities
-
-| Entity | Description |
-|--------|-------------|
-| **ResearchProduct** | Publications, datasets, software, other research outputs |
-| **Organization** | Universities, research institutions, funders |
-| **DataSource** | Repositories, journals, aggregators |
-| **Project** | Funded research grants |
-| **Person** | Authors and contributors |
-| **Community** | Research infrastructures, alliances |
-
-### Research Product Sub-types
-
-- **Publication** — journal articles, conference papers, books, theses
-- **Data** — datasets, geolocations, versions
-- **Software** — code repos, programming languages, docs
-- **Other** — protocols, methods, etc.
+> When the evidence changes, know what to recheck.
 
 ---
 
-## Quick Start
+## What it does
+
+OpenAIRE's Graph contains 386M+ research products that change continuously — records are added, corrected, deduplicated, and sometimes removed. Researchers and AI agents derive conclusions from this data, but when the underlying evidence changes, those conclusions may silently become stale.
+
+Pāṭala Research CI tracks which OpenAIRE records support which research conclusions, detects material changes, and emits proof obligations identifying exactly which conclusions need re-verification.
+
+## Quick start
 
 ```bash
-cd /root/hackathon1
-pip install -r requirements.txt
+# Track an analysis against OpenAIRE
+python3 -m patala_research_ci.cli track \
+  --name my-analysis \
+  --title "Open software in AI research" \
+  --search "agentic AI" \
+  --entity research-products
 
-# Explore the API
-python explore_api.py
+# Add a claim with dependencies
+python3 -m patala_research_ci.cli claim add \
+  --analysis my-analysis \
+  --text "Most sampled outputs expose reusable software" \
+  --depends "entity:openaire:doi:10.1234/example"
 
-# Search for something
-python search.py "open access"
+# Verify against current state
+python3 -m patala_research_ci.cli verify my-analysis
 ```
 
----
+## Architecture
 
-## Links
+```
+OpenAIRE V3 API
+    ↓
+TrackedAnalysis (query + snapshot + digest)
+    ↓
+TrackedClaim (conclusion + dependencies)
+    ↓
+SemanticDiff (materiality-classified changes)
+    ↓
+ImpactReport (which claims are affected)
+    ↓
+ProofObligation (frozen acceptance criteria)
+    ↓
+ResolutionPlan → EvidenceReceipt → RESOLVED
+```
 
-- [OpenAIRE Graph](https://graph.openaire.eu/)
-- [Graph API Docs](https://graph.openaire.eu/docs/apis/graph-api/)
-- [V4 API Docs](https://graph.openaire.eu/docs/apis/graph-api-v4/)
-- [Swagger UI (V3)](https://api.openaire.eu/graph/swagger-ui/index.html)
-- [Swagger UI (V4)](https://api-beta.openaire.eu/graph/swagger-ui/index.html)
-- [Full Dataset (Zenodo)](https://doi.org/10.5281/zenodo.3516917)
-- [Hackathon Page](https://graph.openaire.eu/component/eventbooking/hackathons/openaire-ai-hackathon-powered-by-alien-intelligence)
+## How it works
+
+1. **Track**: Register an OpenAIRE query. Fetch results, canonicalize records, compute content digest.
+
+2. **Claim**: Attach conclusions with explicit dependencies on specific records or relations.
+
+3. **Verify**: Fetch current OpenAIRE state. Compute semantic diff. Match changes against claim dependencies.
+
+4. **Impact**: Classify each claim as CURRENT, SOURCE_CHANGED, RECOMPUTE, or HUMAN_REVIEW.
+
+5. **Oblige**: Emit proof obligations with frozen acceptance criteria that cannot be weakened after creation.
+
+6. **Resolve**: Execute resolution plan, produce evidence receipt, return claim to CURRENT.
+
+## Anti-cheat invariants
+
+```
+SOURCE FAILURE ≠ ZERO RESULTS
+MISSING FIELD ≠ FALSE
+UNKNOWN RELATION ≠ REMOVED RELATION
+COSMETIC CHANGE ≠ MATERIAL CHANGE
+METADATA UPDATE ≠ CLAIM INVALIDATION
+```
+
+## Materiality taxonomy
+
+Not all changes matter equally:
+
+| Class | Example | Triggers obligation? |
+|-------|---------|---------------------|
+| COSMETIC | Whitespace, formatting | No |
+| IDENTITY | ORCID added | No |
+| METADATA | Title corrected | Only if claimed |
+| RELATION | Dataset link removed | Yes |
+| AVAILABILITY | Open access status changed | Only if claimed |
+| RETRACTION | Paper retracted | Yes (human review) |
+
+## Reusable components
+
+| Component | What it is | Lines |
+|-----------|-----------|-------|
+| `openaire.py` | V3 adapter with anti-cheat invariants | ~150 |
+| `tracked.py` | TrackedAnalysis + TrackedClaim | ~120 |
+| `diff.py` | Semantic diff + materiality | ~130 |
+| `impact.py` | Dependency walker | ~100 |
+| `obligations.py` | Frozen acceptance criteria | ~130 |
+| `ledger.py` | Append-only event store | ~80 |
+| `cli.py` | Full CLI | ~200 |
+| `verification/` | Plans, receipts, attack catalog | ~300 |
+| **Total** | | **~1210** |
+
+## Dependencies
+
+```
+httpx>=0.27
+```
+
+That's it. One dependency.
+
+## Running from source
+
+```bash
+git clone https://github.com/prx0r/hackathon1.git
+cd hackathon1
+pip install httpx
+
+# Track
+python3 -m patala_research_ci.cli track --name test --search "open access"
+
+# Claim
+python3 -m patala_research_ci.cli claim add --analysis test --text "OA is growing"
+
+# Verify
+python3 -m patala_research_ci.cli verify test
+
+# Log
+python3 -m patala_research_ci.cli log
+
+# List
+python3 -m patala_research_ci.cli list
+```
+
+## License
+
+- Code: MIT
+- Documentation: CC-BY 4.0
