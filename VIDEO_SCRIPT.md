@@ -1,43 +1,57 @@
 # Video walkthrough script (target: ~2 minutes)
 
-## 0:00–0:15 — Problem
+## 0:00–0:10 — Hook
 
-“OpenAIRE continuously improves its scholarly graph. That is good — but an AI agent may have stored a conclusion from last month's graph. When the graph changes, which conclusions actually need checking again?”
+"An AI agent used OpenAIRE to conclude that Dataset D supports Claim C. That conclusion is stored in memory. But OpenAIRE changed. Does Claim C still hold?"
 
-## 0:15–0:35 — MCP use
+## 0:10–0:25 — The problem
 
-Show an AI client with the official OpenAIRE MCP / Open Science plugin.
+OpenAIRE and Alien Intelligence have made scholarly intelligence directly accessible to autonomous agents. That creates a new problem: **what happens to agent conclusions when the evidence changes?**
 
-“First, the agent discovers evidence through the OpenAIRE MCP powered by Alien Intelligence. Pāṭala records the exact tool call and OpenAIRE identifiers as a credential-redacted, hashed trace.”
+Alien can give the agent the new state. But the old conclusion already exists.
 
-Show `patala-ci mcp-import ...` or the Pāṭala MCP `record_openaire_mcp_call` tool.
+## 0:25–0:40 — MCP trace
 
-## 0:35–0:55 — Track
+Show the Alien/OpenAIRE MCP interface. Agent makes real queries.
 
-Run the deterministic demo or show:
+"Pāṭala records the exact tool calls, OpenAIRE identifiers, and evidence as a credential-redacted, hashed trace."
 
-```bash
-patala-ci track ... --api v3 --claims claims.json --mcp-trace alien-trace.json
+Show the 11-tool-call live trace.
+
+## 0:40–1:00 — Dependencies
+
+"Pāṭala compiles observations into explicit dependencies: Claim C depends on relation D, which depends on evidence E."
+
+Show the dependency graph.
+
+## 1:00–1:20 — Change detection
+
+"OpenAIRE changes. Relation D disappears."
+
+Show the semantic diff.
+
+## 1:20–1:40 — Impact
+
+"Pāṭala identifies: Claim C is affected. Claim A and Claim B are unaffected."
+
+Show:
+```
+CLAIM C    ← REVERIFY_REQUIRED
+  Reason: relation D changed
+  Action: verify dataset-support dependency
+
+CLAIM A    ← CURRENT (unaffected)
+CLAIM B    ← CURRENT (unaffected)
 ```
 
-“Pāṭala then creates a deterministic Graph V3 snapshot and records explicit dependencies between evidence and conclusions.”
+## 1:40–1:55 — Proof obligation
 
-## 0:55–1:20 — Change and impact
+"A frozen proof obligation prevents the agent from silently declaring C current. The obligation specifies exactly what check would restore confidence."
 
-Run:
+Show the ProofObligation with frozen ResolutionPlan.
 
-```bash
-patala-ci verify <analysis-id>
-```
+## 1:55–2:00 — The hook
 
-“Here one record was added and one dataset relation disappeared. The important result is not the diff: two claims need recomputation, while unrelated claims remain untouched.”
+**Verbal, over final visual:**
 
-## 1:20–1:40 — Proof obligation
-
-Show a `ProofObligation` and `ResolutionPlan`.
-
-“An affected claim gets a frozen proof obligation. It cannot silently return to current because an agent says ‘done’; the resolution produces a verifiable evidence receipt.”
-
-## 1:40–2:00 — Why OpenAIRE
-
-“OpenAIRE continuously validates research information. Pāṭala continuously validates what researchers and agents derived from that information. The artifact is MIT/CC-BY, reproducible offline, exports RO-Crate, and can be reused with other evolving scholarly sources.”
+> "Alien makes research intelligence available to agents. Pāṭala makes what they learn maintainable. When inference becomes abundant, knowing what remains justified becomes the scarce resource."

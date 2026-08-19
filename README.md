@@ -1,26 +1,31 @@
 # Pāṭala Research CI
 
-**Continuous verification for AI-native Open Science.**
+**Continuous Verification for Agentic Science**
 
-> **When OpenAIRE changes, know exactly what your research agent needs to recheck.**
+> **OpenAIRE tells an agent what research says now. Pāṭala tells it whether what the agent concluded before still follows.**
 
 OpenAIRE AI Hackathon 2026 — **Theme B: Build**.
 
 ## 30-second explanation
 
-The official **OpenAIRE MCP through Alien Intelligence** lets an AI agent query authoritative scholarly metadata — with automatic updates, execution history, audit trails, and credential redaction. Alien keeps sources current. But a derived conclusion doesn't automatically become current when its source does.
+The official **OpenAIRE MCP through Alien Intelligence** lets AI agents work directly with authoritative scholarly metadata. That changes what agents can do — and creates a new problem: **what happens to agent conclusions when the evidence changes?**
 
-Pāṭala Research CI solves this: it records a credential-redacted MCP evidence trace, creates a deterministic OpenAIRE Graph snapshot, attaches explicit dependencies from claims to the Graph observations they use, then later computes whether those dependencies materially changed:
+Alien can give the agent the new state of OpenAIRE. But the old conclusion already exists — in memory, a report, a dashboard, another agent's context.
+
+Pāṭala solves this: it records which OpenAIRE observations a conclusion depended on, detects when those observations change, and emits proof obligations for affected conclusions while leaving unaffected ones untouched:
 
 ```text
-Alien keeps sources current → agent derives C1 → persists
-     ↓
-OpenAIRE changes → Pāṭala checks → C1 depended on changed relation R
-     ↓
-C1 → REVERIFY_REQUIRED → ProofObligation → ResolutionPlan → VerificationReceipt
+observation → derived claim → explicit dependency
+                                        ↓
+                              source changes
+                                        ↓
+                              blast radius computed
+                                        ↓
+                    affected: PROOF OBLIGATION
+                  unaffected: NO ACTION NEEDED
 ```
 
-It is **not** another literature-search agent, another scholarly graph, or generic graph versioning. It is a continuity layer for conclusions derived from changing research intelligence.
+It is **not** another research agent, another scholarly graph, or generic versioning. It is a continuity layer for conclusions derived from changing research intelligence.
 
 ## Why OpenAIRE + Alien MCP + Pāṭala
 
