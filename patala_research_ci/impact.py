@@ -3,8 +3,10 @@ from __future__ import annotations
 from collections import Counter
 import uuid
 
+from .learning import wilson_lower
 from .model import (
-    ClaimImpact, ClaimState, Dependency, ImpactReport, Materiality, SemanticDiff, TrackedClaim
+    ClaimImpact, ClaimState, Dependency, ImpactReport, Materiality,
+    SemanticDiff, Severity, TrackedClaim
 )
 
 
@@ -17,8 +19,6 @@ def _relation_matches(dep: Dependency, rel: dict) -> bool:
 
 
 def _change_hits_dependency(change, dep: Dependency) -> bool:
-    # A partial enrichment outage should block only claims that depend on the
-    # incomplete plane. A complete source outage blocks all claims elsewhere.
     if change.kind == "SOURCE_PARTIAL":
         return dep.kind == "relation"
     if dep.kind == "query_membership":
@@ -50,9 +50,38 @@ def _state_for_changes(changes) -> str:
     return ClaimState.SOURCE_CHANGED.value
 
 
+def _compute_severity(changes, claim) -> str:
+    """Compute severity based on change types and claim properties."""
+    kinds = {c.kind for c in changes}
+    mats = {c.materiality for c in changes}
+
+    if Materiality.RETRACTION.value in mats or Materiality.CORRECTION.value in mats:
+        return Severity.CRITICAL.value
+    if "ENTITY_REMOVED" in kinds or "RELATION_REMOVED" in kinds:
+        return Severity.HIGH.value
+    if Materiality.RELATION.value in mats:
+        return Severity.MEDIUM.value
+    return Severity.LOW.value
+
+
+def _compute_confidence(changes, claim, diff_total_changes: int) -> float:
+    """Compute Wilson confidence in the impact assessment.
+
+    More changes = less confidence (more noise). Fewer targeted changes = more confidence.
+    """
+    n_deps = max(len(claim.dependencies), 1)
+    n_hits = len(changes)
+    # Confidence: how many of the claim's dependencies were actually hit
+    hit_ratio = n_hits / n_deps
+    # Wilson lower bound: confidence that the claim is truly affected
+    return wilson_lower(n_hits, max(n_deps, 1))
+
+
 def compute_impact(analysis_id: str, diff: SemanticDiff, claims: list[TrackedClaim]) -> ImpactReport:
     impacts: list[ClaimImpact] = []
     unavailable = [c for c in diff.changes if c.kind == "SOURCE_UNAVAILABLE"]
+    total_changes = len(diff.changes)
+
     for claim in claims:
         hit = []
         if unavailable:
@@ -71,6 +100,7 @@ def compute_impact(analysis_id: str, diff: SemanticDiff, claims: list[TrackedCla
             [c.change_id for c in hit],
             [c.reason for c in hit],
         ))
+
     summary = dict(Counter(x.state for x in impacts))
     return ImpactReport(
         impact_id="impact:" + uuid.uuid4().hex[:14],

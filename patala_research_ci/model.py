@@ -21,6 +21,27 @@ class ClaimState(str, Enum):
     UNSUPPORTED = "UNSUPPORTED"
 
 
+class EpistemicLevel(str, Enum):
+    """Epistemic kind ladder from sanskritbenchy run_recorder.py.
+
+    DECLARED = opinion/claim made
+    OBSERVED = measured/computed from data
+    DERIVED = computed from other derived objects
+    VERIFIED = computed + passed deterministic gate
+    """
+    DECLARED = "DECLARED"
+    OBSERVED = "OBSERVED"
+    DERIVED = "DERIVED"
+    VERIFIED = "VERIFIED"
+
+
+class Severity(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
 class Materiality(str, Enum):
     COSMETIC = "COSMETIC"
     IDENTITY = "IDENTITY"
@@ -103,6 +124,10 @@ class TrackedClaim:
     baseline_value: Any = None
     baseline_supported: bool | None = None
     state: str = ClaimState.CURRENT.value
+    epistemic_level: str = EpistemicLevel.DECLARED.value
+    confidence: float = 0.0  # Wilson lower bound confidence in state assessment
+    blast_radius: int = 0    # downstream objects depending on this claim
+    last_verified: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         out = asdict(self)
@@ -215,6 +240,9 @@ class ProofObligation:
     action: str
     status: str = "OPEN"
     resolution_plan_hash: str | None = None
+    priority: float = 0.0  # deterministic priority score
+    severity: str = Severity.MEDIUM.value
+    blast_radius: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
