@@ -1,0 +1,103 @@
+{
+  "source": "OpenAIRE Graph V3",
+  "query": {
+    "search": "artificial intelligence research software",
+    "type": "software",
+    "pageSize": 15
+  },
+  "total": 175,
+  "entities": 15,
+  "snapshot_digest": "sha256:cc1705c6d3537081e54d401ac369967e858f95c35df9d94a2437fa21bb993a8b",
+  "products": [
+    {
+      "id": "openaire____::31cd58bf981edee1c3f2a0956bf0643a",
+      "title": "Artificial General Intelligence Sim software on SourceForge",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_________::f8109d5d7622a2174ef4cf5979d9eb82",
+      "title": "SergioZSZ/Artificial-Intelligence-And-Open-Science-In-Resear",
+      "type": "software",
+      "access": ""
+    },
+    {
+      "id": "doi_dedup___::9dc370b171a613f95747d9fc6c952112",
+      "title": "Complementarity Burden Index: A Diffusion-Adjusted Absorptiv",
+      "type": "software",
+      "access": "RESTRICTED"
+    },
+    {
+      "id": "doi_________::5121f741d9f32e6a24c8e76e580a86b2",
+      "title": "MrGG14/OpenScience: Zenodo",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_________::75d5f5837bdd1053e0b82194f2b61621",
+      "title": "Artificial-Intelligence And Open Science In Research Softwar",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_________::3f274e35cd2ee1a9b3c29d4bfd748b19",
+      "title": "SergioZSZ/Artificial-Intelligence-And-Open-Science-In-Resear",
+      "type": "software",
+      "access": ""
+    },
+    {
+      "id": "doi_dedup___::a4810556cc1ae9d00ec91ef8829c1ef3",
+      "title": "juansta02/Artificial-Intelligence-And-Open-Science-In-Resear",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_dedup___::4cddf3a5bfe24b535934d0874f2256e8",
+      "title": "pcalle23/Artificial-Intelligence-And-Open-Science-In-Researc",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_dedup___::15d17887c9fcd513e2f732b9d3ba929d",
+      "title": "Artificial intelligence and apen science In research softwar",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_dedup___::63d7c4187524bdda7d21432060af665f",
+      "title": "Grobid PDF Analysis",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_________::b49ffa133f478b48ebb8603489f739cb",
+      "title": "Mauriciokr5/Artificial-Intelligence-And-Open-Science-In-Rese",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_dedup___::7754b1a8a6f1ee34fe1b90dfa49fd34b",
+      "title": "miguex255/IA_in_Software_Engineering: Documentation updated",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_dedup___::451b60b3c52f2c96dbab4a8841eafbbe",
+      "title": "Pipeline de An\u00e1lisis de Textos Cient\u00edficos con Grobid.",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_dedup___::1e74cb9bb7ef94c3d44f63927474d912",
+      "title": "Artificial Intelligence And Open Science In Research Softwar",
+      "type": "software",
+      "access": "OPEN"
+    },
+    {
+      "id": "doi_dedup___::21dbe4d3e621c35b2f7418523fb63817",
+      "title": "AIOSRSE-UPM",
+      "type": "software",
+      "access": "OPEN"
+    }
+  ]
+}
