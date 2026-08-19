@@ -12,7 +12,36 @@ OpenAIRE's Graph contains 386M+ research products that change continuously — r
 
 Pāṭala Research CI tracks which OpenAIRE records support which research conclusions, detects material changes, and emits proof obligations identifying exactly which conclusions need re-verification.
 
-## Quick start
+## Integration
+
+### As a CLI tool
+
+```bash
+python3 -m patala_research_ci.cli track --name my-analysis --search "..."
+python3 -m patala_research_ci.cli verify my-analysis
+```
+
+### As an MCP tool
+
+Research CI can be registered as an MCP tool for AI agents. An agent maintaining research conclusions can call:
+
+```
+tool: patala_verify
+args: { analysis_id: "my-analysis" }
+→ { status: "SOURCE_CHANGED", obligations: [...] }
+```
+
+This extends the OpenAIRE MCP with verification capabilities — agents don't just read the graph, they know when their conclusions need updating.
+
+### As a library
+
+```python
+from patala_research_ci.openaire import OpenAIREClient
+from patala_research_ci.tracked import TrackedAnalysis
+from patala_research_ci.diff import compute_diff
+from patala_research_ci.impact import analyze_impact
+from patala_research_ci.obligations import generate_obligations
+```
 
 ```bash
 # Track an analysis against OpenAIRE

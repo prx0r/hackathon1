@@ -22,7 +22,7 @@
 
 | # | Criterion | What we score on |
 |---|-----------|-----------------|
-| 1 | **Use of AI MCP connector** | Not applicable (we use OpenAIRE Graph V3 API directly) |
+| 1 | **Use of AI MCP connector** | Research CI is designed as an MCP-compatible tool: agents can call `patala verify` through MCP to check if their conclusions are still valid. Also uses Graph V3 API directly for bulk operations. |
 | 2 | **Usefulness & value** | Living review teams + AI agents need to know when graph changes invalidate conclusions |
 | 3 | **Originality** | No existing tool does analysis → dependency → change → impact → obligation end-to-end |
 | 4 | **Responsible use** | Append-only provenance, machine ≠ human authority, anti-cheat invariants |
