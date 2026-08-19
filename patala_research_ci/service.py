@@ -24,6 +24,13 @@ class ResearchCI:
     def track(self, analysis_id: str, title: str, query: QuerySpec,
               claims: list[TrackedClaim] | None = None, description: str = "") -> TrackedAnalysis:
         snapshot = fetch_snapshot(self.stack, query)
+        # Reject failed source as baseline — cannot establish knowledge from nothing.
+        if snapshot.source_status in (SourceStatus.UNAVAILABLE.value,):
+            raise ValueError(
+                f"Cannot track analysis: OpenAIRE source unavailable. "
+                f"Cannot establish a baseline from a failed fetch. "
+                f"Source error: {snapshot.source_error or 'unknown'}"
+            )
         self.ws.save_snapshot(snapshot)
         claim_ids = []
         for claim in claims or []:

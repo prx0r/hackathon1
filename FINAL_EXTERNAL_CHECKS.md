@@ -2,11 +2,9 @@
 
 The code artifact is self-contained; these are the only account/publication tasks that cannot be completed inside the build environment.
 
-## Required for the strongest criterion-1 score
+## MCP trace (completed)
 
-Use your hackathon-provided **official OpenAIRE MCP via Alien Intelligence** for at least one real query, then capture a credential-redacted trace using the workflow in `MCP_AGENT_WORKFLOW.md`.
-
-The repository deliberately does **not** pretend the bundled synthetic example is a live call.
+A real Alien/OpenAIRE MCP interaction is included at `artifacts/alien_mcp_trace.live.json` (11 tool calls, 5 OpenAIRE IDs, synthetic:false). A synthetic example remains at `artifacts/alien_mcp_trace.example.json` for offline testing.
 
 ## Public-link check
 

@@ -213,7 +213,7 @@ On verification, canonical snapshots are semantically compared. A source outage 
 | What you used | Details |
 |---|---|
 | **OpenAIRE Graph API** | Graph API **V3** is the deterministic default (`research-products`, `organizations`, `datasources`, `projects`, `persons`). V4 beta is an optional adapter for unified filters/facets. |
-| **MCP tool powered by Alien Intelligence** | The official **OpenAIRE MCP through Alien** is the AI discovery plane. Pāṭala can ingest/record its tool name, arguments, returned structured result and OpenAIRE IDs as a credential-redacted content-digested trace, then bind that trace to a tracked analysis. A synthetic trace is bundled solely to test this protocol; capture one real Alien trace before final submission for live criterion-1 evidence. |
+| **MCP tool powered by Alien Intelligence** | The official **OpenAIRE MCP through Alien** is the AI discovery plane. Pāṭala can ingest/record its tool name, arguments, returned structured result and OpenAIRE IDs as a credential-redacted content-digested trace, then bind that trace to a tracked analysis. **A real Alien/OpenAIRE trace is included** at `artifacts/alien_mcp_trace.live.json` (11 tool calls, 5 OpenAIRE IDs, synthetic:false). A synthetic example remains for offline testing. |
 | **Entity types** | Research products are used in the deterministic demo; code supports publications/data/software/other research products plus projects, organisations, data sources and persons through V3. |
 | **Fields / vocabularies** | Persistent OpenAIRE IDs/PIDs, product type, titles, publication date, authors/contributors, access-right metadata, and typed scholarly relations. Changes are classified as cosmetic, identity, metadata, relation, availability, correction/retraction, query membership or source health. |
 | **Other data sources** | None required for the core demo. ScholeXplorer and Broker are OpenAIRE services. RO-Crate and in-toto informed interoperability/attestation design but are not research-data inputs. |
@@ -243,7 +243,7 @@ Research CI does not claim to invent knowledge-graph versioning, scholarly prove
 
 ## Limitations and known failure modes
 
-Pāṭala is not a truth oracle. “Source changed” does not mean “claim false.” Dependencies must currently be registered explicitly or generated elsewhere and then checked. Automatic extraction of scientific claims from arbitrary PDFs is deliberately out of scope. Partial relation coverage can make semantic comparison uncertain, so the implementation blocks deletion claims when relation-source health is partial. V4 remains beta. Broker subscriptions depend on repository/user configuration. The bundled MCP trace is clearly marked **synthetic** because this build environment does not possess the participant's Alien credentials; a credentialed Alien trace should be captured before submission.
+Pāṭala is not a truth oracle. “Source changed” does not mean “claim false.” Dependencies must currently be registered explicitly or generated elsewhere and then checked. Automatic extraction of scientific claims from arbitrary PDFs is deliberately out of scope. Partial relation coverage can make semantic comparison uncertain, so the implementation blocks deletion claims when relation-source health is partial. V4 remains beta. Broker subscriptions depend on repository/user configuration. A real Alien/OpenAIRE trace is included at artifacts/alien_mcp_trace.live.json; a synthetic example remains for offline testing.
 
 ## Use of AI
 

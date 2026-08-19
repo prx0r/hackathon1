@@ -116,13 +116,18 @@ def diff_snapshots(analysis_id: str, old: Snapshot, new: Snapshot) -> SemanticDi
 
     old_rel = {_relation_key(r): r for r in old.relations}
     new_rel = {_relation_key(r): r for r in new.relations}
+
+    # Observed additions are positive evidence — always emit them.
+    for key in sorted(set(new_rel) - set(old_rel)):
+        changes.append(Change(
+            change_id="chg:" + uuid.uuid4().hex[:14], kind="RELATION_ADDED",
+            materiality=Materiality.RELATION.value, relation=new_rel[key],
+            reason="typed scholarly relation added",
+        ))
+
+    # Absence is only meaningful with complete retrieval.
+    # Under PARTIAL coverage, suppress relation deletions to avoid false alarms.
     if relations_complete:
-        for key in sorted(set(new_rel) - set(old_rel)):
-            changes.append(Change(
-                change_id="chg:" + uuid.uuid4().hex[:14], kind="RELATION_ADDED",
-                materiality=Materiality.RELATION.value, relation=new_rel[key],
-                reason="typed scholarly relation added",
-            ))
         for key in sorted(set(old_rel) - set(new_rel)):
             changes.append(Change(
                 change_id="chg:" + uuid.uuid4().hex[:14], kind="RELATION_REMOVED",

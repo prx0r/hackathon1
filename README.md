@@ -57,7 +57,7 @@ AI client
 
 | Criterion | Evidence in this repository |
 |---|---|
-| **1. OpenAIRE/Alien MCP** | `mcp_trace.py`, `mcp_server.py`, `MCP_AGENT_WORKFLOW.md`, trace import/binding CLI, credential-redaction tests. Bundled trace is explicitly synthetic; capture one real Alien call before final submission. |
+| **1. OpenAIRE/Alien MCP** | `mcp_trace.py`, `mcp_server.py`, `MCP_AGENT_WORKFLOW.md`, trace import/binding CLI, credential-redaction tests. **Live trace included** at `artifacts/alien_mcp_trace.live.json` (11 tool calls, 5 OpenAIRE IDs, synthetic=false). |
 | **2. Usefulness/value** | A persistent analysis learns which conclusions actually need attention instead of rerunning everything or silently going stale. |
 | **3. Originality** | The contribution begins **after** discovery/versioning: `Graph change → explicit claim impact → frozen proof obligation → evidence receipt`. |
 | **4. Responsible data** | `DATA_AND_RIGHTS.md`, OpenAIRE CC-BY attribution, no paywalled full-text redistribution, secret redaction, source-health semantics. |
@@ -100,7 +100,7 @@ Or import an exported trace:
 patala-ci --workspace .patala-live mcp-import alien-trace.json --bind analysis:my-review
 ```
 
-`MCP_AGENT_WORKFLOW.md` gives the full workflow and explains the bundled **synthetic** trace. No claim is made that the synthetic file is evidence of a credentialed Alien session.
+`MCP_AGENT_WORKFLOW.md` gives the full workflow for capturing and importing MCP traces. The repository includes both a live trace (`artifacts/alien_mcp_trace.live.json`, synthetic:false) and a synthetic example (`artifacts/alien_mcp_trace.example.json`).
 
 ## Live OpenAIRE tracking
 

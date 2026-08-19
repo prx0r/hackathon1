@@ -15,7 +15,7 @@ The hackathon scores every criterion 1–5 and can reject an entry for a single 
 
 Before submit, all must be true:
 
-- [ ] One credentialed **Alien/OpenAIRE MCP** tool call has been captured/imported and the redacted trace is public.
+- [x] One real **Alien/OpenAIRE MCP** tool call has been captured/imported and the redacted trace is public.
 - [ ] `SUBMISSION_FINAL.md` is public and no longer says MCP is “not applicable.”
 - [ ] GitHub root has README, LICENSE, `CITATION.cff`, rights/FAIR docs and visible commit history.
 - [ ] `python scripts/verify_release.py` reports `PROVEN` on the final commit/tree.

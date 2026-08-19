@@ -1,6 +1,6 @@
 {
   "schema": "patala.research-ci.build-certificate.v1",
-  "issued_at": "2026-08-19T05:23:07.106002Z",
+  "issued_at": "2026-08-19T05:53:46.472222Z",
   "python": "3.14.4 (main, Jun 18 2026, 14:25:02) [GCC 15.2.0]",
   "platform": "Linux-7.0.0-29-generic-x86_64-with-glibc2.43",
   "status": "PROVEN",
@@ -45,7 +45,7 @@
         "-m",
         "patala_research_ci.cli",
         "--workspace",
-        "/tmp/patala-release-v40vpiqc/workspace",
+        "/tmp/patala-release-wlg3zc2m/workspace",
         "demo"
       ],
       "exit_code": 0,
@@ -57,11 +57,11 @@
         "-m",
         "patala_research_ci.cli",
         "--workspace",
-        "/tmp/patala-release-v40vpiqc/workspace",
+        "/tmp/patala-release-wlg3zc2m/workspace",
         "export",
         "demo:software-evidence",
         "--out",
-        "/tmp/patala-release-v40vpiqc/analysis.ro-crate.zip"
+        "/tmp/patala-release-wlg3zc2m/analysis.ro-crate.zip"
       ],
       "exit_code": 0,
       "status": "PASS"
@@ -72,7 +72,7 @@
         "-m",
         "patala_research_ci.cli",
         "--workspace",
-        "/tmp/patala-release-v40vpiqc/workspace",
+        "/tmp/patala-release-wlg3zc2m/workspace",
         "verify-ledger"
       ],
       "exit_code": 0,
@@ -91,8 +91,8 @@
     "auto_resolved": [
       {
         "claim": "claim:dataset-linkage",
-        "obligation_id": "po:84035d1ccb624e",
-        "receipt": "receipt:2793f7687e6e4e",
+        "obligation_id": "po:5ed324ab811b42",
+        "receipt": "receipt:561c6a6e559948",
         "receipt_valid": true,
         "result": {
           "computable": true,
@@ -104,8 +104,8 @@
       },
       {
         "claim": "claim:open-access",
-        "obligation_id": "po:adf6c505ad5a48",
-        "receipt": "receipt:2dd11c9a4b1d42",
+        "obligation_id": "po:0eb21c8fd3db4a",
+        "receipt": "receipt:b4c4cf1bea0543",
         "receipt_valid": true,
         "result": {
           "computable": true,
@@ -119,26 +119,26 @@
     "ledger": {
       "ok": true,
       "reason": "ok",
-      "state_digest": "sha256:a49359b8455f68a8abe3958adef85c03ab54e062fe57eed2dc63ea04ef7a8ded"
+      "state_digest": "sha256:c9d6896c42f7c071a1eef9c78f262e1b7df5e93b06781e8cc53826a4dd836548"
     },
     "mcp_trace": {
       "connector": "OpenAIRE MCP",
-      "digest": "sha256:285ded26e0fb2032ba98c41c312fecd302ae1d28bc70ca64a2cc49337ea7f395",
+      "digest": "sha256:55f4d0eef2735d50d02abfd26b2ac75cbf776beabded5c486a3d3213183e3b81",
       "openaire_ids": [
         "oa:s1",
         "oa:s2",
         "oa:s3"
       ],
       "synthetic": true,
-      "trace_id": "mcp:5efbd5596c54426b"
+      "trace_id": "mcp:2f558854e24549f6"
     }
   },
   "portable_export": {
-    "bytes": 9714,
-    "sha256": "57551af291acfe1e0b2da34f9f808e70726bacff8a3ac9d74c44a8ead262de80"
+    "bytes": 9710,
+    "sha256": "ddbd4b518a8bfbcc93620f042411a63992030d39a8f7baece8b31fef861c434d"
   },
-  "artifact_count": 69,
-  "artifact_set_hash": "fa6e9eb1919e595614534a31019bf23bad22c17b4fac07f06a0bc2a8879d4046",
+  "artifact_count": 70,
+  "artifact_set_hash": "eaec8232c3e131fa1025f96b1b69edd993553a4ac689ef9511cde072e7e2bb2c",
   "artifacts": [
     {
       "path": ".github/workflows/ci.yml",
@@ -172,8 +172,8 @@
     },
     {
       "path": "FINAL_EXTERNAL_CHECKS.md",
-      "bytes": 923,
-      "sha256": "61ad978530ba8a0de1e203349403c37ed6beb0429a8dbf4db8730ef399e35acf"
+      "bytes": 844,
+      "sha256": "3ecb94c8e0d1d54cfc476ac4355f220f085ab773605be896a1f18f5b64905583"
     },
     {
       "path": "LICENSE",
@@ -207,18 +207,18 @@
     },
     {
       "path": "README.md",
-      "bytes": 7428,
-      "sha256": "0bbac8b7185c76b6ebb5df1ca44ab66d936a40df75056bee78cd8f19c9e8c434"
+      "bytes": 7802,
+      "sha256": "8d3786176cb423c2bae81c72212532f57111a11ec4e46fe65deb8eb6e1db50c9"
     },
     {
       "path": "SCORING_MATRIX.md",
-      "bytes": 2537,
-      "sha256": "4ae48ba6025d4f9b77e06b7fe657ac3f44a1e85ecdce663b1854aee10faf524a"
+      "bytes": 2653,
+      "sha256": "065c1484c3902bf350435d79911620f3c36d8f3120e8cff1149902eb94c3f4d6"
     },
     {
       "path": "SUBMISSION_FINAL.md",
-      "bytes": 21095,
-      "sha256": "3242ce87f3ddeb4a2bda78793a9a9152cfca3a54bb2f0b025724f3c2713fec68"
+      "bytes": 22627,
+      "sha256": "be1c136d832616f664771f445f3b89946db6f0339efa19da238e753aff1c0d41"
     },
     {
       "path": "SUBMISSION_STORY.md",
@@ -229,6 +229,11 @@
       "path": "VIDEO_SCRIPT.md",
       "bytes": 1818,
       "sha256": "9228bf4566edc33ed1fc5741810aceb6f3ff98667eccc4f723f9d7ced1eb6031"
+    },
+    {
+      "path": "artifacts/alien_mcp_trace.live.json",
+      "bytes": 6140,
+      "sha256": "887b1c40dc951827281be0f25bea06f793ac39d5799850b223d382e50a40870a"
     },
     {
       "path": "codemeta.json",
@@ -327,8 +332,8 @@
     },
     {
       "path": "patala_research_ci/diff.py",
-      "bytes": 6665,
-      "sha256": "2ceff421dfd52bf7092a3dac59500d4444f5c4ff6bac83ea7a620a2c36c59931"
+      "bytes": 6851,
+      "sha256": "ca34945a5d633fecfd28cbafe5957858be6506f23ca3c01bff445d0d15959a22"
     },
     {
       "path": "patala_research_ci/export.py",
@@ -377,8 +382,8 @@
     },
     {
       "path": "patala_research_ci/service.py",
-      "bytes": 7079,
-      "sha256": "ef50eb83c296dabc59eba58bdae2eab56e98ec0899a518c97a37d11c8071c140"
+      "bytes": 7494,
+      "sha256": "acf181ad827119199dd733ca103ebe8085322a57d45c7502f87b2eb25dfd6c85"
     },
     {
       "path": "patala_research_ci/snapshot.py",
@@ -442,8 +447,8 @@
     },
     {
       "path": "scripts/verify_release.py",
-      "bytes": 5907,
-      "sha256": "1c074eddac47b4b36f512e25b646f1ec1ffe02942c8874f62ea9476584671441"
+      "bytes": 7353,
+      "sha256": "fb2e728861311efaf1de8b129e4e700a4e09b0628f1dbfcd115d9ab2cfed27d5"
     },
     {
       "path": "tests/test_canonical.py",
@@ -487,14 +492,18 @@
     }
   ],
   "mcp_integration": {
-    "status": "PROVEN_SYNTHETIC_PATH",
-    "connector": "official OpenAIRE MCP via Alien Intelligence (external discovery plane)",
-    "evidence": "offline demo records, redacts, hashes and binds a trace marked synthetic; a credentialed Alien session is external to this build environment",
-    "live_trace_required_for_max_hackathon_score": true
+    "status": "PROVEN_LIVE_TRACE",
+    "connector": "official OpenAIRE MCP via Alien Intelligence",
+    "trace_id": "mcp:alien-openaire-live-20260819",
+    "trace_digest": "",
+    "synthetic": false,
+    "tool_calls": 11,
+    "openaire_ids": 5,
+    "trace_file": "artifacts/alien_mcp_trace.live.json"
   },
   "network_live_test": {
     "status": "SEPARATE_SMOKE_TEST",
     "reason": "core correctness is deterministic; upstream availability must not control the release certificate"
   },
-  "certificate_hash": "a511246e94d47b6c1a811f4aa797f8b142e2a066f4b2ae3401e99d2ba31ec886"
+  "certificate_hash": "4aa50fca954c13a89281d1fef0075e7411087b618a21a9b7a440b4a82f0170ba"
 }
