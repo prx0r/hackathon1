@@ -1,23 +1,23 @@
 # DOSSIERS INDEX — Top 10 Ideas
 
-*2026-08-19 · Ranked by hackathon fit*
+*2026-08-19 · Ranked by hackathon fit · Each with honest challenge review*
 
 ---
 
 ## Final Rankings
 
-| # | Idea | Score | Status | Hackathon Play |
-|---|------|-------|--------|----------------|
-| **1** | **[Pāṭala Research CI](01-research-ci.md)** | **9.2** | **BUILD THIS** | OpenAIRE extension — continuous verification |
-| **2** | **[Pāṭala Crux](02-crux.md)** | **8.6** | Stretch feature | Verification primitive — perturbation analysis |
-| 3 | [Scholar Relay](03-scholar-relay.md) | 7.8 | Future extension | Route to humans via OpenAIRE Person |
-| 4 | [Broker Agent](04-broker-agent.md) | 7.5 | Not for this hackathon | Evidence-backed enrichment |
-| 5 | [Contribution Ledger](05-contribution-ledger.md) | 7.2 | Future vision | Research assessment events |
-| 6 | [Counterfactual Engine](06-counterfactual.md) | 7.0 | Future vision | Whole-graph what-if analysis |
-| 7 | [Verified-Statement Marketplace](07-verified-marketplace.md) | 6.8 | Long-term | Certification Weight flywheel |
-| 8 | [OpenScience CI](08-open-science-ci.md) | 6.5 | Not for this hackathon | Adversarial graph testing |
-| 9 | [Manuscript Reality Bridge](09-manuscript-bridge.md) | 6.2 | Future extension | Ontology bridge for manuscripts |
-| 10 | [Adaptive Knowledge Graph](10-adaptive-kg.md) | 6.0 | Reference only | Education KG-RAG |
+| # | Idea | Score | Threat | Status | Challenge |
+|---|------|-------|--------|--------|-----------|
+| **1** | **[Pāṭala Research CI](01-research-ci.md)** | **9.2** | LOW | **BUILD THIS** | [Challenge](CHALLENGE-01-research-ci.md) |
+| **2** | **[Pāṭala Crux](02-crux.md)** | **8.6** | MEDIUM | Stretch feature | [Challenge](CHALLENGE-02-crux.md) |
+| 3 | [Scholar Relay](03-scholar-relay.md) | 7.8 | MED-HIGH | Future extension | [Challenge](CHALLENGE-03-scholar-relay.md) |
+| 4 | [Broker Agent](04-broker-agent.md) | 7.5 | LOW-MED | Not for this hackathon | [Challenge](CHALLENGE-04-broker-agent.md) |
+| 5 | [Contribution Ledger](05-contribution-ledger.md) | 7.2 | VERY LOW | Future vision | [Challenge](CHALLENGE-05-contribution-ledger.md) |
+| 6 | [Counterfactual Engine](06-counterfactual.md) | 7.0 | MEDIUM | Future vision | [Challenge](CHALLENGE-06-counterfactual.md) |
+| 7 | [Verified-Statement Marketplace](07-verified-marketplace.md) | 6.8 | LOW-MED | Long-term | [Challenge](CHALLENGE-07-verified-marketplace.md) |
+| 8 | [OpenScience CI](08-open-science-ci.md) | 6.5 | VERY LOW | Not for this hackathon | [Challenge](CHALLENGE-08-open-science-ci.md) |
+| 9 | [Manuscript Reality Bridge](09-manuscript-bridge.md) | 6.2 | LOW-MED | Future extension | [Challenge](CHALLENGE-09-manuscript-bridge.md) |
+| 10 | [Adaptive Knowledge Graph](10-adaptive-kg.md) | 6.0 | MED-HIGH | Reference only | [Challenge](CHALLENGE-10-adaptive-kg.md) |
 
 ---
 
@@ -42,6 +42,7 @@ TRACK → SNAPSHOT → DETECT → IMPACT → OBLIGE
 - ❌ Generic OpenAIRE MCP/RAG (Alien already did it)
 - ❌ Research dashboards (MONITOR exists)
 - ❌ Organisation dedup (AffRo + OpenOrgs exist)
+- ❌ Adaptive KG tutoring (DeepTutor, pykt-toolkit exist)
 
 ---
 
