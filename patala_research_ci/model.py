@@ -9,6 +9,10 @@ class SourceStatus(str, Enum):
     OK = "OK"
     PARTIAL = "PARTIAL"
     UNAVAILABLE = "UNAVAILABLE"
+    DEGRADED = "DEGRADED"
+    STALE = "STALE"
+    BLOCKED = "BLOCKED"
+    RETIRED = "RETIRED"
 
 
 class ClaimState(str, Enum):
@@ -19,20 +23,23 @@ class ClaimState(str, Enum):
     BLOCKED = "BLOCKED"
     VERIFIED_CURRENT = "VERIFIED_CURRENT"
     UNSUPPORTED = "UNSUPPORTED"
+    EXPIRED = "EXPIRED"  # absence claim expired — source may have new data
 
 
 class EpistemicLevel(str, Enum):
-    """Epistemic kind ladder from sanskritbenchy run_recorder.py.
+    """5-level epistemic ladder from patalapath2 + sanskritbenchy.
 
-    DECLARED = opinion/claim made
-    OBSERVED = measured/computed from data
-    DERIVED = computed from other derived objects
-    VERIFIED = computed + passed deterministic gate
+    OBSERVED   = directly seen in source
+    INFERRED   = derived by algorithm
+    ESTIMATED  = computed from partial data
+    ASSERTED   = claimed without evidence
+    ADJUDICATED = verified by human expert
     """
-    DECLARED = "DECLARED"
     OBSERVED = "OBSERVED"
-    DERIVED = "DERIVED"
-    VERIFIED = "VERIFIED"
+    INFERRED = "INFERRED"
+    ESTIMATED = "ESTIMATED"
+    ASSERTED = "ASSERTED"
+    ADJUDICATED = "ADJUDICATED"
 
 
 class Severity(str, Enum):
@@ -73,6 +80,47 @@ class QuerySpec:
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "QuerySpec":
         return cls(**d)
+
+
+@dataclass
+class ProviderHealth:
+    """Rich source health model from patalapath2."""
+    provider_id: str
+    last_success: str = ""
+    freshness: str = SourceStatus.OK.value
+    records_seen: int = 0
+    error_rate: float = 0.0
+    metadata_yield: float = 1.0
+    last_checked: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class StalenessRecord:
+    """Tracks when an absence claim should expire.
+
+    From patalapath2: "A claim of absence should expire."
+    If we searched and found nothing 3 months ago, that absence is stale.
+    """
+    dimension: str  # e.g. "translation.eng", "dataset.linked"
+    state: str  # SEARCHED_FOUND, SEARCHED_NONE_KNOWN, NOT_SEARCHED
+    checked_at: str = ""
+    search_protocol: str = ""
+    freshness: str = "CURRENT"
+    expires_at: str | None = None  # when absence claim expires
+
+    def is_expired(self, current_time: str | None = None) -> bool:
+        """Check if this staleness record has expired."""
+        if self.expires_at is None:
+            return False
+        if current_time is None:
+            return False
+        return current_time > self.expires_at
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass
@@ -124,10 +172,12 @@ class TrackedClaim:
     baseline_value: Any = None
     baseline_supported: bool | None = None
     state: str = ClaimState.CURRENT.value
-    epistemic_level: str = EpistemicLevel.DECLARED.value
+    epistemic_level: str = EpistemicLevel.OBSERVED.value
     confidence: float = 0.0  # Wilson lower bound confidence in state assessment
     blast_radius: int = 0    # downstream objects depending on this claim
     last_verified: str = ""
+    absence_expires_at: str | None = None  # from patalapath2: "absence claims should expire"
+    is_absence_claim: bool = False  # True if claim is "X does NOT exist"
 
     def to_dict(self) -> dict[str, Any]:
         out = asdict(self)
