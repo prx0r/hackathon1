@@ -1,6 +1,6 @@
 {
   "schema": "patala.research-ci.build-certificate.v1",
-  "issued_at": "2026-08-19T05:19:58.870687Z",
+  "issued_at": "2026-08-19T05:23:07.106002Z",
   "python": "3.14.4 (main, Jun 18 2026, 14:25:02) [GCC 15.2.0]",
   "platform": "Linux-7.0.0-29-generic-x86_64-with-glibc2.43",
   "status": "PROVEN",
@@ -45,7 +45,7 @@
         "-m",
         "patala_research_ci.cli",
         "--workspace",
-        "/tmp/patala-release-6j1faxzw/workspace",
+        "/tmp/patala-release-v40vpiqc/workspace",
         "demo"
       ],
       "exit_code": 0,
@@ -57,11 +57,11 @@
         "-m",
         "patala_research_ci.cli",
         "--workspace",
-        "/tmp/patala-release-6j1faxzw/workspace",
+        "/tmp/patala-release-v40vpiqc/workspace",
         "export",
         "demo:software-evidence",
         "--out",
-        "/tmp/patala-release-6j1faxzw/analysis.ro-crate.zip"
+        "/tmp/patala-release-v40vpiqc/analysis.ro-crate.zip"
       ],
       "exit_code": 0,
       "status": "PASS"
@@ -72,7 +72,7 @@
         "-m",
         "patala_research_ci.cli",
         "--workspace",
-        "/tmp/patala-release-6j1faxzw/workspace",
+        "/tmp/patala-release-v40vpiqc/workspace",
         "verify-ledger"
       ],
       "exit_code": 0,
@@ -91,8 +91,8 @@
     "auto_resolved": [
       {
         "claim": "claim:dataset-linkage",
-        "obligation_id": "po:4a741ea172534f",
-        "receipt": "receipt:59c3131e42104c",
+        "obligation_id": "po:84035d1ccb624e",
+        "receipt": "receipt:2793f7687e6e4e",
         "receipt_valid": true,
         "result": {
           "computable": true,
@@ -104,8 +104,8 @@
       },
       {
         "claim": "claim:open-access",
-        "obligation_id": "po:9700558a9aee45",
-        "receipt": "receipt:2d526660626940",
+        "obligation_id": "po:adf6c505ad5a48",
+        "receipt": "receipt:2dd11c9a4b1d42",
         "receipt_valid": true,
         "result": {
           "computable": true,
@@ -119,23 +119,23 @@
     "ledger": {
       "ok": true,
       "reason": "ok",
-      "state_digest": "sha256:36d64df345bfe6050c73b3eb5fc446897932fc0567d48730135e892c07a0288d"
+      "state_digest": "sha256:a49359b8455f68a8abe3958adef85c03ab54e062fe57eed2dc63ea04ef7a8ded"
     },
     "mcp_trace": {
       "connector": "OpenAIRE MCP",
-      "digest": "sha256:574163ac911c7796ac35bd225d8aa3d714f1aff1c7ac14f8fc9974887b1be15d",
+      "digest": "sha256:285ded26e0fb2032ba98c41c312fecd302ae1d28bc70ca64a2cc49337ea7f395",
       "openaire_ids": [
         "oa:s1",
         "oa:s2",
         "oa:s3"
       ],
       "synthetic": true,
-      "trace_id": "mcp:e0ed3f3dff314b2c"
+      "trace_id": "mcp:5efbd5596c54426b"
     }
   },
   "portable_export": {
     "bytes": 9714,
-    "sha256": "117bd4a9bdb075fb03338f853a513dfeca62d96ebba1274532a0a7bd9d61218f"
+    "sha256": "57551af291acfe1e0b2da34f9f808e70726bacff8a3ac9d74c44a8ead262de80"
   },
   "artifact_count": 69,
   "artifact_set_hash": "fa6e9eb1919e595614534a31019bf23bad22c17b4fac07f06a0bc2a8879d4046",
@@ -496,5 +496,5 @@
     "status": "SEPARATE_SMOKE_TEST",
     "reason": "core correctness is deterministic; upstream availability must not control the release certificate"
   },
-  "certificate_hash": "094d20a9826df26979cb8ae62da937c5c244f12321d939f31bd7ccb73b4b063d"
+  "certificate_hash": "a511246e94d47b6c1a811f4aa797f8b142e2a066f4b2ae3401e99d2ba31ec886"
 }

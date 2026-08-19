@@ -25,7 +25,24 @@
 
 ## 1.1 Overall
 
-OpenAIRE and Alien Intelligence now let AI agents query an authoritative, structured scholarly graph directly through Model Context Protocol (MCP). That solves an important access problem: an agent can discover publications, datasets, software, projects, organisations and people without relying on generic web search. A second problem appears as soon as those answers persist: **the OpenAIRE Graph keeps improving after the agent has formed its conclusion. Which stored conclusions need to be checked again?**
+OpenAIRE and Alien Intelligence now let AI agents query an authoritative, structured scholarly graph directly through Model Context Protocol (MCP). Alien goes further: it keeps sources updated automatically, provides execution history, audit trails, credential redaction, and content attribution. That solves the access problem comprehensively: an agent can discover publications, datasets, software, projects, organisations and people with full provenance.
+
+**But a second problem remains.** An agent derives conclusion C1 at time T1. It persists in memory, a report, a policy analysis, a literature review. Alien keeps its sources current — but that does not automatically make C1 current. The derived artifact does not know that its supporting evidence changed.
+
+```text
+Alien keeps sources current
+           │
+           ▼
+Agent at T1 ── derives ──► C1
+                            │
+                            │ persists
+                            │
+OpenAIRE changes at T2      │
+           │                │
+           └────── ??? ─────┘
+```
+
+**Pāṭala fills the ???**
 
 **Pāṭala Research CI** is a dependency-aware continuous-verification layer for that downstream problem. The official OpenAIRE/Alien MCP is the AI discovery plane. Pāṭala captures a credential-redacted, content-digested trace of the MCP evidence used by an analysis, then creates a deterministic snapshot through the OpenAIRE Graph API. Research conclusions are registered as `TrackedClaim` objects with explicit dependencies on Graph entities, fields, typed relations or query membership.
 
@@ -44,7 +61,7 @@ The first users are teams maintaining living evidence syntheses, bibliometric/re
 
 ### The question
 
-OpenAIRE already continuously improves its Graph through ingestion, deduplication, identifier resolution, inference and validation. Alien's OpenAIRE MCP makes that research intelligence directly usable by AI agents. But an AI agent may save a literature analysis today and reuse it months later. If a supporting record is corrected, a relation disappears, or new evidence enters the query set, the agent's stored conclusion does not automatically know that its evidence changed.
+OpenAIRE already continuously improves its Graph through ingestion, deduplication, identifier resolution, inference and validation. Alien's OpenAIRE MCP makes that research intelligence directly usable by AI agents — with automatic updates, execution history, audit trails, and credential redaction. But an AI agent may save a literature analysis today and reuse it months later. Alien keeping its source current doesn't automatically make that already-derived artifact current. If a supporting record is corrected, a relation disappears, or new evidence enters the query set, the agent's stored conclusion does not automatically know that its evidence changed.
 
 The project therefore asked a deliberately narrow question:
 
@@ -96,7 +113,28 @@ QDW-inspired frozen verification plans were then added so an obligation cannot b
 
 ### The insight
 
-The useful primitive is not a graph diff. It is **impact-aware continuity**:
+The useful primitive is not a graph diff. It is **impact-aware continuity** — the missing bridge between Alien's always-current sources and the agent's already-derived conclusions:
+
+```text
+ALIEN
+─────────────────────────────────────
+What data did the agent access?
+What tool ran?
+What sources were returned?
+What is OpenAIRE saying now?
+Who accessed what?
+Was access authorized?
+
+
+PĀṬALA
+─────────────────────────────────────
+Which persistent conclusion used it?
+What dependency did that evidence satisfy?
+Has that dependency materially changed?
+Does the conclusion actually need rechecking?
+What exact verification would resolve it?
+Has that verification subsequently passed?
+```
 
 ```text
 what changed?

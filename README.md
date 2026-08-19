@@ -8,12 +8,16 @@ OpenAIRE AI Hackathon 2026 — **Theme B: Build**.
 
 ## 30-second explanation
 
-The official **OpenAIRE MCP through Alien Intelligence** lets an AI agent query authoritative scholarly metadata. Pāṭala Research CI solves the next lifecycle problem: the agent may retain a conclusion after the OpenAIRE Graph has changed.
+The official **OpenAIRE MCP through Alien Intelligence** lets an AI agent query authoritative scholarly metadata — with automatic updates, execution history, audit trails, and credential redaction. Alien keeps sources current. But a derived conclusion doesn't automatically become current when its source does.
 
-Pāṭala records a credential-redacted MCP evidence trace, creates a deterministic OpenAIRE Graph snapshot, attaches explicit dependencies from claims to the Graph observations they use, then later computes:
+Pāṭala Research CI solves this: it records a credential-redacted MCP evidence trace, creates a deterministic OpenAIRE Graph snapshot, attaches explicit dependencies from claims to the Graph observations they use, then later computes whether those dependencies materially changed:
 
 ```text
-MCP evidence → snapshot → Graph changes → affected claims → proof obligations → verification receipts
+Alien keeps sources current → agent derives C1 → persists
+     ↓
+OpenAIRE changes → Pāṭala checks → C1 depended on changed relation R
+     ↓
+C1 → REVERIFY_REQUIRED → ProofObligation → ResolutionPlan → VerificationReceipt
 ```
 
 It is **not** another literature-search agent, another scholarly graph, or generic graph versioning. It is a continuity layer for conclusions derived from changing research intelligence.
